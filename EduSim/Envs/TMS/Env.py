@@ -1,19 +1,17 @@
 # coding: utf-8
 # 2020/4/29 @ tongshiwei
 
-from tensorboardX import SummaryWriter
-import logging
-from longling import json_load
+from pprint import pformat
+
 from longling import path_append, abs_current_dir
 from EduSim.Envs.meta import Env
-from .Learner import Learner
-from .Exerciser import Exerciser
 from copy import deepcopy
-from EduSim.utils.io_lib import load_ks_from_csv
-from EduSim.utils import board_episode_callback
-from EduSim.SimOS import train_eval
 
-__all__ = ["TMSEnv", "tms_train_eval"]
+from .meta import LearnerGroup, TMSTestItemBase, TMSLearningItemBase, TMSScorer
+from .utils import load_environment_parameters
+from EduSim.spaces import ListSpace
+
+__all__ = ["TMSEnv"]
 
 ROOT = path_append(abs_current_dir(__file__), "meta_data")
 
@@ -21,55 +19,6 @@ ENV_META = {
     "binary": path_append(ROOT, "binary", to_str=True),
     "tree": path_append(ROOT, "tree", to_str=True),
 }
-
-
-def tms_train_eval(agent, env: Env, max_steps: int = None, max_episode_num: int = None, n_step=False,
-                   train=False,
-                   logger=logging, level="episode", board_dir=None):
-    def summary_callback(rewards, infos, logger):
-        expected_reward = sum(rewards) / len(rewards)
-
-        logger.info("Expected Reward: %s" % expected_reward)
-
-        return expected_reward, infos
-
-    sw = None
-    if board_dir is not None:
-        sw = SummaryWriter(board_dir)
-
-        def episode_callback(episode, reward, *args):
-            return board_episode_callback(episode, reward, sw)
-
-    else:
-        episode_callback = None
-
-    train_eval(
-        agent, env,
-        max_steps, max_episode_num, n_step, train,
-        logger, level,
-        episode_callback=episode_callback,
-        summary_callback=summary_callback,
-    )
-
-    if board_dir:
-        sw.close()
-
-
-def load_matrix(filename):
-    from collections import defaultdict
-    meta_data = json_load(filename)
-
-    for i in range(len(meta_data)):
-        if isinstance(meta_data[i], dict):
-            converted_dict = {}
-            for k, v_dict in meta_data[i].items():
-                converted_dict[int(k)] = defaultdict(float)
-                for key, value in v_dict.items():
-                    converted_dict[int(k)][int(key)] = value
-            meta_data[i] = converted_dict
-
-    return meta_data
-
 
 NO_MEASUREMENT_ERROR = 0
 MEASUREMENT_ERROR = 1
@@ -80,51 +29,67 @@ NAME = [
 ]
 
 MODE = {
-    "nme": NO_MEASUREMENT_ERROR,
-    "me": MEASUREMENT_ERROR,
+    "no_measurement_error": NO_MEASUREMENT_ERROR,
+    "with_measurement_error": MEASUREMENT_ERROR,
 }
 
 
 class TMSEnv(Env):
-    def __init__(self, name, measure_item_for_each_skill=2, mode="me"):
+    def __init__(self, name, mode="with_measurement_error", seed=None, parameters: dict = None):
         """
 
         Parameters
         ----------
         name:
             binary or tree
-        measure_item_for_each_skill
+        parameters: dict
+            * test_item_for_each_skill
         mode
         """
         super(TMSEnv, self).__init__()
 
-        self.ks = load_ks_from_csv(ENV_META[name] + "_ks.csv")
-        self._learner = Learner(
-            load_matrix(ENV_META[name] + ".json"),
-            json_load(ENV_META[name] + "_state.json"),
-            json_load(ENV_META[name] + "_init_state.json")
+        directory = ENV_META.get(name, name)
+        environment_parameters = load_environment_parameters(directory)
+        if parameters is not None:
+            environment_parameters.update(parameters)
+
+        self.knowledge_structure = environment_parameters["knowledge_structure"]
+        self.learners = LearnerGroup(
+            transition_matrix=environment_parameters["transition_matrix"],
+            state2vector=environment_parameters["state2vector"],
+            initial_states=environment_parameters["initial_states"]
         )
-        self._meta = json_load(ENV_META[name] + "_meta.json")
-        self._skill_num = self._meta["skill_num"]
-        self._begin_state = None
+        self._skill_num = environment_parameters["configuration"]["skill_num"]
+        self._test_item_for_each_skill = environment_parameters["configuration"]["test_item_for_each_skill"]
+        self.mode_str = mode
         self.mode = MODE[mode]
-        self._measure_item_for_each_skill = measure_item_for_each_skill
-        self._exerciser = Exerciser(self._skill_num, measure_item_for_each_skill)
+        self.learning_item_base = TMSLearningItemBase({
+            "d%s" % i: {"knowledge": i} for i in range(self._skill_num)
+        })
+        self.test_item_base = TMSTestItemBase(
+            self._skill_num,
+            self._test_item_for_each_skill,
+            seed=seed
+        )
+        self.scorer = TMSScorer()
+        self._learner = None
+        self._begin_state = None
+
+        self.action_space = ListSpace(self.learning_item_base.item_id_list)
+
+    def __repr__(self):
+        return pformat({
+            "skill_num": self._skill_num,
+            "test_item_for_each_skill": self._test_item_for_each_skill,
+            "mode": self.mode_str
+        })
 
     @property
-    def description(self) -> dict:
+    def parameters(self) -> dict:
         return {
-            "ks": self.ks,
-            "action_space": list(range(self.action_num)),
+            "knowledge_structure": self.knowledge_structure,
+            "action_space": self.action_space,
         }
-
-    @property
-    def exercise_bank(self):
-        return self._exerciser.exercise_bank
-
-    @property
-    def action_num(self):
-        return self._skill_num
 
     def render(self, mode='human'):
         if mode == "log":
@@ -135,12 +100,19 @@ class TMSEnv(Env):
 
     def step(self, learning_item_id, *args, **kwargs):
         proficiency = sum(self._learner.state)
-        self._learner.learn(learning_item_id)
+        self._learner.learn(self.learning_item_base[learning_item_id])
+
+        # Equation (1)
         reward = sum(self._learner.state) - proficiency
+
+        # section 4.1.1
         if self.mode == NO_MEASUREMENT_ERROR:
             observation = self._learner.state
         else:
-            observation = self._exerciser.exam(self._learner, *range(self._skill_num))
+            observation = [
+                self.scorer(self._learner.state[item.knowledge], item.attribute)
+                for item in self.test_item_base
+            ]
         return observation, reward, len(self._learner.state) == sum(
             self._learner.state), None
 
@@ -148,7 +120,7 @@ class TMSEnv(Env):
         return zip(*[self.step(learning_item) for learning_item in learning_path])
 
     def begin_episode(self, *args, **kwargs):
-        self._learner.reset()
+        self._learner = next(self.learners)
         self._begin_state = deepcopy(self._learner.state)
         return self._learner.profile
 
@@ -156,6 +128,9 @@ class TMSEnv(Env):
         if self.mode == NO_MEASUREMENT_ERROR:
             observation = self._learner.state
         else:
-            observation = self._exerciser.exam(self._learner, *range(self._skill_num))
+            observation = [
+                self.scorer(self._learner.state[item.knowledge], item.attribute)
+                for item in self.test_item_base
+            ]
         reward = sum(self._learner.state) - sum(self._begin_state)
         return observation, reward, len(self._learner.state) == sum(self._learner.state), None

@@ -2,7 +2,51 @@
 
 ## Env Protocol
 
+- What are provided as environment parameters
+    - [x] action space
+    - [x] knowledge structure
+    - [ ] items
+    - [ ]
+
+- What is recommended, knowledge or item?
+    - [x] knowledge
+    - [ ] item
+
+### Additional
+
+There are two different mode for 
+
+- `no_measurement_error`
+- `with_measurement_error`
+
+### Learner
+ 
+- Which type is the learner, infinity or finite?
+    - [x] infinity
+    - [ ] finite
+- Which mode is the response of the learner, real or hidden?
+    - [ ] real
+    - [x] hidden 
+
+### Item
+- What are the types of items in this environments?
+    - [x] learning item
+    - [x] testing item
+
+- What are included in an item?
+    - [ ] content
+    - [x] knowledge (or skill)
+    - [x] attribute
+        - guessing
+        - slipping
+
+### Reward
+
+
 ## Agent Protocol
+- What is recommended, skill or item?
+    - [x] skill
+    - [ ] item
 
 
 ## Systems
