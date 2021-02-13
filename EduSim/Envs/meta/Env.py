@@ -7,8 +7,11 @@ import gym
 class Env(gym.Env):
     metadata = {'render.modes': ['human', 'log']}
 
+    def __repr__(self):
+        return str(self.parameters)
+
     @property
-    def description(self) -> dict:
+    def parameters(self) -> dict:
         return {}
 
     def reset(self):
