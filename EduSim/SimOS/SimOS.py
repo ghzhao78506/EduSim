@@ -1,10 +1,12 @@
 # coding: utf-8
 # 2020/4/30 @ tongshiwei
 
-import random
+from itertools import cycle
+from gym.spaces import Space
 import logging
 
 from EduSim.Envs.meta.Env import Env
+from EduSim.utils.callback import get_board_episode_callback, reward_summary_callback
 from .config import as_level
 from longling.ML.toolkit.monitor import ConsoleProgressMonitor, EMAValue
 
@@ -30,8 +32,8 @@ class MetaAgent(object):
 
 
 class RandomAgent(MetaAgent):
-    def __init__(self, material_nums):
-        self._n = material_nums
+    def __init__(self, action_space: Space):
+        self.action_space = action_space
 
     def begin_episode(self, *args, **kwargs):
         pass
@@ -43,18 +45,43 @@ class RandomAgent(MetaAgent):
         pass
 
     def step(self):
-        return random.randint(0, self._n - 1)
+        return self.action_space.sample()
 
     def n_step(self, max_steps: int):
-        return [random.randint(0, self._n - 1) for _ in range(max_steps)]
+        return [self.step() for _ in range(max_steps)]
 
     def tune(self, *args, **kwargs):
         pass
 
 
-def train_eval(agent: MetaAgent, env: Env, max_steps: int = None, max_episode_num: int = None, n_step=False,
-               train=False,
-               logger=logging, level="episode", episode_callback=None, summary_callback=None):
+def meta_train_eval(agent: MetaAgent, env: Env, max_steps: int = None, max_episode_num: int = None, n_step=False,
+                    train=False,
+                    logger=logging, level="episode", episode_callback=None, summary_callback=None):
+    """
+
+    Parameters
+    ----------
+    agent
+    env
+    max_steps:
+        When max_steps is set (i.e., max_steps is not None):
+        at each episode, the agent will interactive at maximum of max_steps with environments.
+        When max_steps is not set (i.e., max_steps is None): the episode will last until
+        the environment return done=True
+
+    max_episode_num:
+        max_episode_num should be set when environment is the type of infinity
+    n_step
+    train
+    logger
+    level
+    episode_callback
+    summary_callback
+
+    Returns
+    -------
+
+    """
     episode = 0
 
     level = as_level(level)
@@ -72,9 +99,11 @@ def train_eval(agent: MetaAgent, env: Env, max_steps: int = None, max_episode_nu
         )
         monitor.player.start()
     else:
-        monitor = None
+        monitor = lambda x: x
 
-    while True:
+    loop = cycle([1]) if max_episode_num is None else range(max_episode_num)
+
+    for _ in monitor(loop):
         if max_episode_num is not None and episode >= max_episode_num:
             break
 
@@ -86,7 +115,7 @@ def train_eval(agent: MetaAgent, env: Env, max_steps: int = None, max_episode_nu
             if level <= as_level("episode"):
                 logger.info("episode [%s]: %s" % (episode, env.render("log")))
 
-        except ValueError:  # pragma: no cover
+        except StopIteration:  # pragma: no cover
             break
 
         # recommend and learn
@@ -142,9 +171,7 @@ def train_eval(agent: MetaAgent, env: Env, max_steps: int = None, max_episode_nu
             logger.info("episode [%s] - total reward: %s" % (episode, reward))
             logger.info("episode [%s]: %s" % (episode, env.render(mode="log")))
 
-        elif monitor is not None:
-            values["Episode"]("Reward", reward)
-            monitor.player(episode)
+        values["Episode"].update("Reward", reward)
 
         env.reset()
 
@@ -157,7 +184,43 @@ def train_eval(agent: MetaAgent, env: Env, max_steps: int = None, max_episode_nu
     if summary_callback is not None and level <= as_level("summary"):
         return summary_callback(rewards, infos, logger)
 
-    if monitor is not None:
-        monitor.player.end()
-
     return rewards, infos
+
+
+def train_eval(agent: MetaAgent, env: Env, max_steps: int = None, max_episode_num: int = None, n_step=False,
+               train=False,
+               logger=logging, level="episode", board_dir=None):
+    """
+
+    Parameters
+    ----------
+    agent
+    env
+    max_steps
+    max_episode_num
+    n_step
+    train
+    logger
+    level
+    board_dir: the directory to hold tensorboard result
+        use ``tensorboard --logdir $board_dir`` to see the result
+
+    Returns
+    -------
+
+    """
+
+    assert max_episode_num is not None, "infinity environment, max_episode_num should be set"
+
+    sw, episode_callback = get_board_episode_callback(board_dir)
+
+    meta_train_eval(
+        agent, env,
+        max_steps, max_episode_num, n_step, train,
+        logger, level,
+        episode_callback=episode_callback,
+        summary_callback=reward_summary_callback,
+    )
+
+    if board_dir:
+        sw.close()
