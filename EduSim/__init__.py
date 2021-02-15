@@ -4,13 +4,15 @@
 from gym.envs.registration import register
 from .Envs import *
 from .SimOS import train_eval, MetaAgent
+from .spaces import *
+from .ItemBase import ItemBase
+
+# register(
+#     id='KSS-v1',
+#     entry_point='EduSim.Envs:KSSEnv',
+# )
 
 register(
-    id='KSS-v1',
-    entry_point='EduSim.Envs:KSSEnv',
-)
-
-register(
-    id='TMS-v0',
+    id='TMS-v1',
     entry_point='EduSim.Envs:TMSEnv',
 )
