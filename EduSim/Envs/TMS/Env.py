@@ -98,13 +98,7 @@ class TMSEnv(Env):
     def reset(self):
         self._begin_state = None
 
-    def step(self, learning_item_id, *args, **kwargs):
-        proficiency = sum(self._learner.state)
-        self._learner.learn(self.learning_item_base[learning_item_id])
-
-        # Equation (1)
-        reward = sum(self._learner.state) - proficiency
-
+    def gen_obs(self):
         # section 4.1.1
         if self.mode == NO_MEASUREMENT_ERROR:
             observation = self._learner.state
@@ -113,6 +107,17 @@ class TMSEnv(Env):
                 self.scorer(self._learner.state[item.knowledge], item.attribute)
                 for item in self.test_item_base
             ]
+        return observation
+
+    def step(self, learning_item_id, *args, **kwargs):
+        proficiency = sum(self._learner.state)
+        self._learner.learn(self.learning_item_base[learning_item_id])
+
+        # Equation (1)
+        reward = sum(self._learner.state) - proficiency
+
+        observation = self.gen_obs()
+
         return observation, reward, len(self._learner.state) == sum(
             self._learner.state), None
 
@@ -122,15 +127,10 @@ class TMSEnv(Env):
     def begin_episode(self, *args, **kwargs):
         self._learner = next(self.learners)
         self._begin_state = deepcopy(self._learner.state)
-        return self._learner.profile
+        return self._learner.profile, self.gen_obs()
 
     def end_episode(self, *args, **kwargs):
-        if self.mode == NO_MEASUREMENT_ERROR:
-            observation = self._learner.state
-        else:
-            observation = [
-                self.scorer(self._learner.state[item.knowledge], item.attribute)
-                for item in self.test_item_base
-            ]
+        observation = self.gen_obs()
+
         reward = sum(self._learner.state) - sum(self._begin_state)
         return observation, reward, len(self._learner.state) == sum(self._learner.state), None
