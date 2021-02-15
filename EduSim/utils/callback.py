@@ -3,7 +3,21 @@
 
 from tensorboardX import SummaryWriter
 
-__all__ = ["SummaryWriter", "board_episode_callback", "reward_summary_callback"]
+__all__ = ["SummaryWriter", "board_episode_callback", "reward_summary_callback", "get_board_episode_callback"]
+
+
+def get_board_episode_callback(board_dir=None):
+    sw = None
+    if board_dir is not None:
+        sw = SummaryWriter(board_dir)
+
+        def episode_callback(episode, reward, *args):
+            return board_episode_callback(episode, reward, sw)
+
+    else:
+        episode_callback = None
+
+    return sw, episode_callback
 
 
 def board_episode_callback(episode, reward, summary_writer: SummaryWriter):
