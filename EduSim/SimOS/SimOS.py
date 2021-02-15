@@ -56,7 +56,8 @@ class RandomAgent(MetaAgent):
 
 def meta_train_eval(agent: MetaAgent, env: Env, max_steps: int = None, max_episode_num: int = None, n_step=False,
                     train=False,
-                    logger=logging, level="episode", episode_callback=None, summary_callback=None):
+                    logger=logging, level="episode", episode_callback=None, summary_callback=None,
+                    values: dict = None, monitor=None):
     """
 
     Parameters
@@ -77,6 +78,8 @@ def meta_train_eval(agent: MetaAgent, env: Env, max_steps: int = None, max_episo
     level
     episode_callback
     summary_callback
+    values
+    monitor
 
     Returns
     -------
@@ -88,18 +91,20 @@ def meta_train_eval(agent: MetaAgent, env: Env, max_steps: int = None, max_episo
 
     rewards = []
     infos = []
-    values = {"Episode": EMAValue(["Reward"])}
 
-    if level >= as_level("summary"):
-        monitor = ConsoleProgressMonitor(
-            indexes={"Episode": ["Reward"]},
-            values=values,
-            total=max_episode_num,
-            player_type="episode"
-        )
-        monitor.player.start()
-    else:
-        monitor = lambda x: x
+    if values is None:
+        values = {"Episode": EMAValue(["Reward"])}
+
+    if monitor is None:
+        if level >= as_level("summary"):
+            monitor = ConsoleProgressMonitor(
+                indexes={"Episode": ["Reward"]},
+                values=values,
+                total=max_episode_num,
+                player_type="episode"
+            )
+        else:
+            monitor = lambda x: x
 
     loop = cycle([1]) if max_episode_num is None else range(max_episode_num)
 
@@ -123,7 +128,10 @@ def meta_train_eval(agent: MetaAgent, env: Env, max_steps: int = None, max_episo
             assert max_steps is not None
             # generate a learning path
             learning_path = agent.n_step(max_steps)
-            env.n_step(learning_path)
+            for observation, reward, done, info in env.n_step(learning_path):
+                agent.observe(observation, reward, done, info)
+                if done:
+                    break
         else:
             learning_path = []
             _step = 0
@@ -134,7 +142,7 @@ def meta_train_eval(agent: MetaAgent, env: Env, max_steps: int = None, max_episo
                     try:
                         learning_item = agent.step()
                         learning_path.append(learning_item)
-                    except ValueError:  # pragma: no cover
+                    except StopIteration:  # pragma: no cover
                         break
                     observation, reward, done, info = env.step(learning_item)
 
@@ -184,12 +192,10 @@ def meta_train_eval(agent: MetaAgent, env: Env, max_steps: int = None, max_episo
     if summary_callback is not None and level <= as_level("summary"):
         return summary_callback(rewards, infos, logger)
 
-    return rewards, infos
-
 
 def train_eval(agent: MetaAgent, env: Env, max_steps: int = None, max_episode_num: int = None, n_step=False,
                train=False,
-               logger=logging, level="episode", board_dir=None):
+               logger=logging, level="episode", board_dir=None, *args, **kwargs):
     """
 
     Parameters
@@ -220,6 +226,7 @@ def train_eval(agent: MetaAgent, env: Env, max_steps: int = None, max_episode_nu
         logger, level,
         episode_callback=episode_callback,
         summary_callback=reward_summary_callback,
+        *args, **kwargs
     )
 
     if board_dir:
