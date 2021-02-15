@@ -11,7 +11,7 @@ test_deps = [
 
 setup(
     name='EduSim',
-    version='0.0.2',
+    version='0.1.0',
     extras_require={
         'test': test_deps,
     },
@@ -23,7 +23,7 @@ setup(
                 'provide some offline simulators for training and testing recommender systems of education.',
     install_requires=[
         'gym',
-        'longling>=1.3.12',
+        'longling>=1.3.19',
         'tqdm',
         'networkx',
         'numpy',
