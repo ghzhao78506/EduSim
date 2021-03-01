@@ -57,7 +57,8 @@ class TMSEnv(Env):
         self.learners = LearnerGroup(
             transition_matrix=environment_parameters["transition_matrix"],
             state2vector=environment_parameters["state2vector"],
-            initial_states=environment_parameters["initial_states"]
+            initial_states=environment_parameters["initial_states"],
+            seed=seed
         )
         self._skill_num = environment_parameters["configuration"]["skill_num"]
         self._test_item_for_each_skill = environment_parameters["configuration"]["test_item_for_each_skill"]
@@ -75,7 +76,7 @@ class TMSEnv(Env):
         self._learner = None
         self._begin_state = None
 
-        self.action_space = ListSpace(self.learning_item_base.item_id_list)
+        self.action_space = ListSpace(self.learning_item_base.item_id_list, seed=seed)
 
     def __repr__(self):
         return pformat({

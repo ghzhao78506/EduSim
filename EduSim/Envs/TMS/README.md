@@ -36,6 +36,8 @@ There are two different mode for
 - What are included in an item?
     - [ ] content
     - [x] knowledge (or skill)
+        - [x] single
+        - [ ] multiple
     - [x] attribute
         - guessing
         - slipping

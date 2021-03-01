@@ -5,11 +5,13 @@ import networkx as nx
 import random
 from EduSim.Envs.meta import Env
 
-from .Learner import LearnerGroup
-from .KS import get_knowledge_structure
-from .QBank import QBank
-from .Exerciser import Exerciser
+import itertools
+import numpy as np
+from EduSim.Envs.KSS.meta.Learner import LearnerGroup, Learner
 from EduSim.Envs.shared.KSS_KES import episode_reward, kss_kes_train_eval as kss_train_eval
+from EduSim.spaces import ListSpace
+from .meta import KSSItemBase, KSSScorer
+from .utils import load_environment_parameters
 
 __all__ = ["KSSEnv", "kss_train_eval"]
 
@@ -25,111 +27,119 @@ MODE = {
 
 
 class KSSEnv(Env):
-    def __init__(self, learner_num=4000, seed=10, order_ratio=1, initial_step=20, mode="inf"):
-        random.seed(seed)
+    def __init__(self, learner_num=4000, seed=None, initial_step=20):
+        self.random_state = np.random.RandomState(seed)
 
-        self.mode = MODE[mode]
+        parameters = load_environment_parameters()
+        self.knowledge_structure = parameters["knowledge_structure"]
+        self._item_base = KSSItemBase(
+            parameters["knowledge_structure"],
+            parameters["learning_order"]
+        )
+        self.learning_item_base = self._item_base
+        self.test_item_base = self._item_base
+        self.scorer = KSSScorer()
 
-        self.ks = get_knowledge_structure()
-        self.default_order = [5, 0, 1, 2, 3, 4, 6, 7, 8, 9]
-        self.q_bank = QBank(self.ks.number_of_nodes(), self.default_order)
-        self._exerciser = Exerciser(self.q_bank)
+        self.action_space = ListSpace(self.learning_item_base.items, seed=seed)
 
         self._learner_num = learner_num
-        self.learner_group = LearnerGroup(self.ks)
-        self._order_ratio = order_ratio
-        self._topo_order = list(nx.topological_sort(self.ks))
+        self.learners = LearnerGroup(self.knowledge_structure, seed=seed)
+
+        self._order_ratio = parameters["configuration"]["order_ratio"]
+        self._review_times = parameters["configuration"]["review_times"]
+        self._learning_order = parameters["learning_order"]
+
+        self._topo_order = list(nx.topological_sort(self.knowledge_structure))
         self._initial_step = initial_step
-        self._review_times = 1
 
-        self._idx = 0
-        if self.mode in {RANDOM, LOOP}:
-            self.initial_learner_group()
-
-        self._initial_learner_state = None
         self._learner = None
 
     @property
-    def description(self) -> dict:
+    def parameters(self) -> dict:
         return {
-            "ks": self.ks,
-            "action_space": list(range(self.action_num)),
+            "knowledge_structures": self.knowledge_structure,
+            "action_space": self.action_space,
         }
 
-    @property
-    def action_num(self):
-        return self.ks.number_of_nodes()
-
-    def _initial_learner(self, learner):
-        exercise_history = []
+    def _initial_logs(self, learner: Learner):
+        logs = []
 
         if random.random() < self._order_ratio:
-            while len(exercise_history) < self._initial_step:
-                if exercise_history and exercise_history[-1][1] == 1 and len(
-                        set([e[0] for e in exercise_history[-3:]])) > 1:
+            while len(logs) < self._initial_step:
+                if logs and logs[-1][1] == 1 and len(
+                        set([e[0] for e in logs[-3:]])) > 1:
                     for _ in range(self._review_times):
-                        if len(exercise_history) < self._initial_step - self._review_times:
-                            learning_item = exercise = exercise_history[-1][0]
-                            learner.learn(learning_item)
-                            exercise_history.append(self._exerciser.test(exercise, learner, binary_mode=True))
+                        if len(logs) < self._initial_step - self._review_times:
+                            learning_item_id = test_item_id = logs[-1][0]
+                            learner.learn(self.learning_item_base[str(learning_item_id)])
+                            test_item = self.test_item_base[str(test_item_id)]
+                            score = self.scorer(
+                                learner.response(test_item), test_item.attributes
+                            )
+                            logs.append([test_item_id, score])
                         else:
                             break
-                    learning_item = exercise_history[-1][0]
-                elif exercise_history and exercise_history[-1][1] == 0 and random.random() < 0.7:
-                    learning_item = exercise_history[-1][0]
+                    learning_item_id = logs[-1][0]
+                elif logs and logs[-1][1] == 0 and random.random() < 0.7:
+                    learning_item_id = logs[-1][0]
                 elif random.random() < 0.9:
-                    for learning_item in self._topo_order:
-                        if self._exerciser.test(learning_item, learner, binary_mode=False)[1] < 0.6:
+                    for test_item_id in self._topo_order:
+                        if learner.response(self.test_item_base[str(test_item_id)]) < 0.6:
                             break
                     else:  # pragma: no cover
                         break
+                    learning_item_id = test_item_id
                 else:
-                    learning_item = random.randint(0, len(self._topo_order) - 1)
+                    learning_item_id = self.random_state.choice(self.learning_item_base.index)
 
-                learner.learn(learning_item)
-                exercise_history.append(self._exerciser.test(learning_item, learner, binary_mode=True))
+                learner.learn(self.learning_item_base[learning_item_id])
+                test_item_id = learning_item_id
+                test_item = self.test_item_base[str(test_item_id)]
+                score = self.scorer(learner.response(test_item.knowledge), test_item.attributes)
+                logs.append([test_item_id, score])
         else:
-            while len(learner.learning_history) < self._initial_step:
+            while len(logs) < self._initial_step:
                 if random.random() < 0.9:
-                    for learning_item in self.default_order:
-                        if self._exerciser.test(learning_item, learner, binary_mode=False)[1] < 0.6:
+                    for test_item_id in self._learning_order:
+                        if learner.state[self.test_item_base[test_item_id].knowledge] < 0.6:
                             break
                     else:
                         break
+                    learning_item_id = test_item_id
                 else:
-                    learning_item = random.randint(0, len(self._topo_order) - 1)
-                learner.learn(learning_item)
-                exercise_history.append(self._exerciser.test(learning_item, learner, binary_mode=True))
-        assert len(exercise_history) <= self._initial_step, len(learner.exercise_history)
-        return exercise_history
+                    learning_item_id = self.random_state.choice(self.learning_item_base.index)
 
-    def initial_learner_group(self):
-        while len(self.learner_group) < self._learner_num:
-            learner = self.learner_group.new_learner()
-            exercise_history = self._initial_learner(learner)
-            if sum([v for _, v in self._exerciser.exam(learner, *learner.target)]) < len(learner.target):
-                learner.set_profile(exercise_history)
-                self.learner_group.add(learner)
+                learning_item = self.learning_item_base[learning_item_id]
+                learner.learn(learning_item)
+                test_item_id = learning_item_id
+                test_item = self.test_item_base[test_item_id]
+                score = self.scorer(learner.response(test_item), test_item.attributes)
+                logs.append([test_item_id, score])
+
+        learner.update_logs(logs)
+
+    def _exam(self, learner: Learner, detailed=False, reduce="sum") -> (dict, int, float):
+        knowledge_response = {}
+        for test_knowledge in learner.target:
+            knowledge_response[test_knowledge] = [
+                [item.id, self.scorer(learner.response(item), item.attribute)]
+                for item in self.test_item_base[test_knowledge]
+            ]
+        if detailed:
+            return knowledge_response
+        if reduce is None:
+            return {k: np.average(v) for k, v in knowledge_response.items()}
+        elif reduce == "sum":
+            return np.sum([np.average(v) for v in knowledge_response.values()])
+        elif reduce in {"mean", "ave"}:
+            return np.average([np.average(v) for v in knowledge_response.values()])
+        else:
+            raise TypeError("unknown reduce type %s" % reduce)
 
     def begin_episode(self, *args, **kwargs):
-        if self.mode == RANDOM:
-            learner = self.learner_group.sample()
-        elif self.mode == LOOP:
-            learner = self.learner_group[self._idx]
-            self._idx = (self._idx + 1) % len(self.learner_group)
-        elif self.mode == INF:
-            while True:
-                learner = self.learner_group.new_learner()
-                exercise_history = self._initial_learner(learner)
-                if sum([v for _, v in self._exerciser.exam(learner, *learner.target)]) < len(learner.target):
-                    learner.set_profile(exercise_history)
-                    break
-        else:  # pragma: no cover
-            raise TypeError("unknown mode %s" % self.mode)
-
-        self._learner = learner
-        self._initial_learner_state = self._learner.state
-        return learner.profile
+        self._learner = next(self.learners)
+        self._initial_logs(self._learner)
+        return self._learner.profile
 
     def end_episode(self, *args, **kwargs):
         observation = self._exerciser.exam(self._learner, *self._learner.target)
@@ -162,8 +172,6 @@ class KSSEnv(Env):
 
     def reset(self):
         self._learner = None
-        self._initial_learner_state = None
-        self._idx = 0
 
     def render(self, mode='human'):
         if mode == "log":

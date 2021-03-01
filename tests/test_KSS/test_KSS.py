@@ -12,13 +12,13 @@ from longling import path_append
 def test_api(mode):
     env = KSSEnv(learner_num=20, mode=mode)
 
-    assert set(env.description.keys()) == {"ks", "action_space"}
+    assert set(env.parameters.keys()) == {"ks", "action_space"}
 
     learner_profile = env.begin_episode()
 
     assert isinstance(learner_profile, list)
 
-    action = random.choice(env.description["action_space"])
+    action = random.choice(env.parameters["action_space"])
     env.step(action)
     env.end_episode()
 

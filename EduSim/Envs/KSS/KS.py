@@ -23,3 +23,8 @@ def get_knowledge_structure():
     ks = KS()
     ks.add_edges_from(graph_edges)
     return ks
+
+
+if __name__ == '__main__':
+    import json
+    print(json.dumps(graph_edges, indent=2))

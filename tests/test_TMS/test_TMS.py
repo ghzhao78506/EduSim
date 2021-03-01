@@ -14,13 +14,13 @@ import gym
 def test_api(name, mode):
     env = TMSEnv(name, mode=mode)
 
-    assert set(env.description.keys()) == {"ks", "action_space"}
+    assert set(env.parameters.keys()) == {"ks", "action_space"}
 
     learner_profile = env.begin_episode()
 
     assert isinstance(learner_profile, dict)
 
-    action = random.choice(env.description["action_space"])
+    action = random.choice(env.parameters["action_space"])
     env.step(action)
     env.end_episode()
 

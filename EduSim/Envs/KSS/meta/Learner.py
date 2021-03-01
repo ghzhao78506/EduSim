@@ -1,14 +1,15 @@
 # coding: utf-8
 # 2019/11/26 @ tongshiwei
 
+import numpy as np
 import random
 import math
 
 import networkx as nx
-from EduSim.Envs.meta import MetaLearner, MetaLearnerGroup, MetaLearningModel
+from EduSim.Envs.meta import MetaLearner, MetaInfinityLearnerGroup, MetaLearningModel, Item
 from EduSim.Envs.shared.KSS_KES.KS import influence_control
 
-__all__ = ["Learner"]
+__all__ = ["Learner", "LearnerGroup"]
 
 
 class LearningModel(MetaLearningModel):
@@ -42,62 +43,65 @@ class LearningModel(MetaLearningModel):
 
 
 class Learner(MetaLearner):
-    def __init__(self, initial_state, knowledge_structure: nx.DiGraph, learning_target: set,
-                 learning_history: list = None, profile=None, _id=None):
-        super(Learner, self).__init__(_id=_id)
+    def __init__(self,
+                 initial_state,
+                 knowledge_structure: nx.DiGraph,
+                 learning_target: set,
+                 _id=None,
+                 seed=None):
+        super(Learner, self).__init__(user_id=_id)
 
-        self.lm = LearningModel(
+        self.learning_model = LearningModel(
             initial_state,
             learning_target,
             knowledge_structure,
-            learning_history[-1] if learning_history is not None else None
         )
 
         self.structure = knowledge_structure
         self._state = initial_state
         self._target = learning_target
-        self._profile = [] if profile is None else profile
+        self._logs = []
+        self.random_state = np.random.RandomState(seed)
+
+    def update_logs(self, logs):
+        self._logs = logs
 
     @property
     def profile(self):
-        return self._profile
+        return {
+            "id": self.id,
+            "logs": self._logs,
+            "target": self.target
+        }
 
     def set_profile(self, profile):
         self._profile = profile
 
-    def learn(self, learning_item: int):
-        self.lm.step(self._state, learning_item)
+    def learn(self, learning_item: Item):
+        self.learning_model.step(self._state, learning_item.knowledge)
 
     @property
     def state(self):
-        return {_idx: self._state[_idx] for _idx in self._target}
+        return self._state
 
-    def test(self, exercise):
-        return self._state[exercise]
+    def response(self, test_item: Item) -> ...:
+        return self._state[test_item.attribute["knowledge"]]
 
     @property
     def target(self):
         return self._target
 
 
-class LearnerGroup(MetaLearnerGroup):
-    def __init__(self, knowledge_structure):
-        super(LearnerGroup, self).__init__([])
-        self.ks = knowledge_structure
+class LearnerGroup(MetaInfinityLearnerGroup):
+    def __init__(self, knowledge_structure, seed=None):
+        super(LearnerGroup, self).__init__()
+        self.knowledge_structure = knowledge_structure
+        self.random_state = np.random.RandomState(seed)
 
-    def new_learner(self):
+    def __next__(self):
+        knowledge = self.knowledge_structure.nodes
         return Learner(
-            [random.randint(-3, 0) - (0.1 * i) for i in range(10)],
-            self.ks,
-            set(random.sample(self.ks.nodes, random.randint(3, len(self.ks.nodes)))),
+            [self.random_state.randint(-3, 0) - (0.1 * i) for i, _ in enumerate(knowledge)],
+            self.knowledge_structure,
+            set(self.random_state.choice(len(knowledge), self.random_state.randint(3, len(knowledge)))),
         )
-
-    def add(self, learner):
-        self._learners.append(learner)
-
-    def __getitem__(self, item):
-        return self._learners[item]
-
-    def __iter__(self):
-        for learner in self._learners:
-            yield learner

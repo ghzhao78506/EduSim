@@ -39,7 +39,7 @@ class MetaLearner(object):
 
         Parameters
         ----------
-        test_item: dict
+        test_item
             a test item
         """
         raise NotImplementedError

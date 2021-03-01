@@ -15,8 +15,14 @@ class ListSpace(Space):
     def sample(self):
         return self.np_random.choice(self.elements)
 
+    def sample_idx(self):
+        return self.np_random.choice(list(range(len(self.elements))))
+
     def contains(self, item):
         return item in self.elements
 
     def __repr__(self):
         return pformat(self.elements)
+
+    def __getitem__(self, item):
+        return self.elements[item]
