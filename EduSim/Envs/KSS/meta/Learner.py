@@ -19,18 +19,19 @@ class LearningModel(MetaLearningModel):
         self._ks = knowledge_structure
         self._ks_last_visit = last_visit
 
-    def step(self, state, learning_item):
+    def step(self, state, knowledge):
+
         if self._ks_last_visit is not None:
-            if learning_item not in influence_control(
+            if knowledge not in influence_control(
                     self._ks, state, self._ks_last_visit, allow_shortcut=False, target=self._target,
             )[0]:
                 return
-        self._ks_last_visit = learning_item
+        self._ks_last_visit = knowledge
 
         # capacity growth function
-        discount = math.exp(sum([(5 - state[node]) for node in self._ks.predecessors(learning_item)] + [0]))
+        discount = math.exp(sum([(5 - state[node]) for node in self._ks.predecessors(knowledge)] + [0]))
         ratio = 1 / discount
-        inc = (5 - state[learning_item]) * ratio * 0.5
+        inc = (5 - state[knowledge]) * ratio * 0.5
 
         def _promote(_ind, _inc):
             state[_ind] += _inc
@@ -39,7 +40,7 @@ class LearningModel(MetaLearningModel):
             for node in self._ks.successors(_ind):
                 _promote(node, _inc * 0.5)
 
-        _promote(learning_item, inc)
+        _promote(knowledge, inc)
 
 
 class Learner(MetaLearner):
@@ -85,7 +86,7 @@ class Learner(MetaLearner):
         return self._state
 
     def response(self, test_item: Item) -> ...:
-        return self._state[test_item.attribute["knowledge"]]
+        return self._state[test_item.knowledge]
 
     @property
     def target(self):

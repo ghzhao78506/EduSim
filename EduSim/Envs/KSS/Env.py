@@ -5,15 +5,14 @@ import networkx as nx
 import random
 from EduSim.Envs.meta import Env
 
-import itertools
 import numpy as np
 from EduSim.Envs.KSS.meta.Learner import LearnerGroup, Learner
-from EduSim.Envs.shared.KSS_KES import episode_reward, kss_kes_train_eval as kss_train_eval
+from EduSim.Envs.shared.KSS_KES import episode_reward
 from EduSim.spaces import ListSpace
 from .meta import KSSItemBase, KSSScorer
 from .utils import load_environment_parameters
 
-__all__ = ["KSSEnv", "kss_train_eval"]
+__all__ = ["KSSEnv"]
 
 RANDOM = 0
 LOOP = 1
@@ -34,7 +33,8 @@ class KSSEnv(Env):
         self.knowledge_structure = parameters["knowledge_structure"]
         self._item_base = KSSItemBase(
             parameters["knowledge_structure"],
-            parameters["learning_order"]
+            parameters["learning_order"],
+            items=parameters["items"]
         )
         self.learning_item_base = self._item_base
         self.test_item_base = self._item_base
@@ -53,6 +53,7 @@ class KSSEnv(Env):
         self._initial_step = initial_step
 
         self._learner = None
+        self._initial_score = None
 
     @property
     def parameters(self) -> dict:
@@ -70,12 +71,8 @@ class KSSEnv(Env):
                         set([e[0] for e in logs[-3:]])) > 1:
                     for _ in range(self._review_times):
                         if len(logs) < self._initial_step - self._review_times:
-                            learning_item_id = test_item_id = logs[-1][0]
-                            learner.learn(self.learning_item_base[str(learning_item_id)])
-                            test_item = self.test_item_base[str(test_item_id)]
-                            score = self.scorer(
-                                learner.response(test_item), test_item.attributes
-                            )
+                            learning_item_id = logs[-1][0]
+                            test_item_id, score = self.learn_and_test(learner, learning_item_id)
                             logs.append([test_item_id, score])
                         else:
                             break
@@ -90,12 +87,9 @@ class KSSEnv(Env):
                         break
                     learning_item_id = test_item_id
                 else:
-                    learning_item_id = self.random_state.choice(self.learning_item_base.index)
+                    learning_item_id = self.random_state.choice(list(self.learning_item_base.index))
 
-                learner.learn(self.learning_item_base[learning_item_id])
-                test_item_id = learning_item_id
-                test_item = self.test_item_base[str(test_item_id)]
-                score = self.scorer(learner.response(test_item.knowledge), test_item.attributes)
+                test_item_id, score = self.learn_and_test(learner, learning_item_id)
                 logs.append([test_item_id, score])
         else:
             while len(logs) < self._initial_step:
@@ -109,14 +103,18 @@ class KSSEnv(Env):
                 else:
                     learning_item_id = self.random_state.choice(self.learning_item_base.index)
 
-                learning_item = self.learning_item_base[learning_item_id]
-                learner.learn(learning_item)
-                test_item_id = learning_item_id
-                test_item = self.test_item_base[test_item_id]
-                score = self.scorer(learner.response(test_item), test_item.attributes)
-                logs.append([test_item_id, score])
+                item_id, score = self.learn_and_test(learner, learning_item_id)
+                logs.append([item_id, score])
 
         learner.update_logs(logs)
+
+    def learn_and_test(self, learner: Learner, item_id):
+        learning_item = self.learning_item_base[item_id]
+        learner.learn(learning_item)
+        test_item_id = item_id
+        test_item = self.test_item_base[test_item_id]
+        score = self.scorer(learner.response(test_item), test_item.attributes)
+        return item_id, score
 
     def _exam(self, learner: Learner, detailed=False, reduce="sum") -> (dict, int, float):
         knowledge_response = {}
@@ -139,35 +137,34 @@ class KSSEnv(Env):
     def begin_episode(self, *args, **kwargs):
         self._learner = next(self.learners)
         self._initial_logs(self._learner)
-        return self._learner.profile
+        self._initial_score = self._exam(self._learner)
+        return self._learner.profile, self._exam(self._learner, detailed=True)
 
     def end_episode(self, *args, **kwargs):
-        observation = self._exerciser.exam(self._learner, *self._learner.target)
-        initial_score = sum([v for _, v in self._exerciser.exam(self._initial_learner_state, *self._learner.target)])
-        final_score = sum([v for _, v in observation])
+        observation = self._exam(self._learner, detailed=True)
+        initial_score, self._initial_score = self._initial_score, None
+        final_score = self._exam(self._learner)
         reward = episode_reward(initial_score, final_score, len(self._learner.target))
         done = final_score == len(self._learner.target)
         info = {"initial_score": initial_score, "final_score": final_score}
-
-        assert reward >= 0, "%s" % self._idx
+        self._learner = None
 
         return observation, reward, done, info
 
     def step(self, learning_item_id, *args, **kwargs):
-        a = sum([v for _, v in self._exerciser.exam(self._learner, *self._learner.target)])
+        a = self._exam(self._learner)
         self._learner.learn(learning_item_id)
-        observation = self._exerciser.test(learning_item_id, self._learner)
-        b = sum([v for _, v in self._exerciser.exam(self._learner, *self._learner.target)])
-
+        observation = self.learn_and_test(self._learner, learning_item_id)
+        b = self._exam(self._learner)
         return observation, b - a, b == len(self._learner.target), None
 
     def n_step(self, learning_path, *args, **kwargs):
         exercise_history = []
-        a = sum([v for _, v in self._exerciser.exam(self._learner, *self._learner.target)])
+        a = self._exam(self._learner)
         for learning_item_id in learning_path:
-            self._learner.learn(learning_item_id)
-            exercise_history.append(self._exerciser.test(learning_item_id, self._learner))
-        b = sum([v for _, v in self._exerciser.exam(self._learner, *self._learner.target)])
+            item_id, score = self.learn_and_test(self._learner, learning_item_id)
+            exercise_history.append([item_id, score])
+        b = self._exam(self._learner)
         return exercise_history, b - a, b == len(self._learner.target), None
 
     def reset(self):
@@ -176,4 +173,5 @@ class KSSEnv(Env):
     def render(self, mode='human'):
         if mode == "log":
             return "target: %s, state: %s" % (
-                self._learner.target, dict(self._exerciser.exam(self._learner, *self._learner.target)))
+                self._learner.target, dict(self._exam(self._learner))
+            )

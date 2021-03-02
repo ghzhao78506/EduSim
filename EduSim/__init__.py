@@ -7,10 +7,10 @@ from .SimOS import train_eval, MetaAgent
 from .spaces import *
 from .ItemBase import ItemBase
 
-# register(
-#     id='KSS-v1',
-#     entry_point='EduSim.Envs:KSSEnv',
-# )
+register(
+    id='KSS-v2',
+    entry_point='EduSim.Envs:KSSEnv',
+)
 
 register(
     id='TMS-v1',
