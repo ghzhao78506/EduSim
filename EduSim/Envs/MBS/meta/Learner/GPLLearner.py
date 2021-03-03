@@ -68,6 +68,7 @@ class GPLLearner(MetaLearner):
 
 class GPLLearnerGroup(MBSLearnerGroup):
     def __init__(self, n_items, n_steps=None, n_windows=5, seed=None):
+        # todo: fix bug
         self.n_items = n_items
         super(GPLLearnerGroup, self).__init__(seed=seed)
         self._window_correct_coefficients = self.sample_window_cw(n_windows)
