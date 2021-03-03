@@ -119,6 +119,5 @@ class GPLLearner(MetaLearner):
             self._window_attempt_coefficients
         )
 
-
     def learn(self, learning_item, timestamp, *args, **kwargs):
         self.test(learning_item, timestamp)

@@ -4,12 +4,12 @@
 
 class Scorer(object):
     def __call__(self, user, item, *args, **kwargs) -> ...:
-        raise NotImplemented
+        raise NotImplementedError
 
 
 class RealScorer(Scorer):
     def answer_scoring(self, user_response, item_truth, *args, **kwargs):
-        raise NotImplemented
+        raise NotImplementedError
 
     def __call__(self, user_response, item_truth, *args, **kwargs):
         return self.answer_scoring(user_response, item_truth, *args, **kwargs)
@@ -25,7 +25,7 @@ class HiddenScorer(Scorer):
         super(HiddenScorer, self).__init__()
 
     def response_function(self, user_trait, item_trait, *args, **kwargs):
-        raise NotImplemented
+        raise NotImplementedError
 
     def __call__(self, user_trait, item_trait, *args, **kwargs):
         return self.response_function(user_trait, item_trait, *args, **kwargs)

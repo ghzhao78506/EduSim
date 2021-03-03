@@ -62,7 +62,7 @@ def initial_item_base(items: (dict, list, int, Iterable)) -> list:
         items = [Item(**item) for item in items]
 
     else:
-        raise NotImplemented("can not handle the type of %s" % type(items))
+        raise TypeError("can not handle the type of %s" % type(items))
 
     return items
 

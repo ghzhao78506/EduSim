@@ -104,7 +104,8 @@ def meta_train_eval(agent: MetaAgent, env: Env, max_steps: int = None, max_episo
                 player_type="episode"
             )
         else:
-            monitor = lambda x: x
+            def monitor(x):
+                return x
 
     loop = cycle([1]) if max_episode_num is None else range(max_episode_num)
 

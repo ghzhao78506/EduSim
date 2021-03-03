@@ -7,4 +7,4 @@ import gym
 
 @pytest.fixture(scope="module")
 def env():
-    return gym.make('KSS-v1', learner_num=20)
+    return gym.make('KSS-v2', learner_num=20)

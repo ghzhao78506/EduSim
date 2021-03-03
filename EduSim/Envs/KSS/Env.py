@@ -59,7 +59,7 @@ class KSSEnv(Env):
     @property
     def parameters(self) -> dict:
         return {
-            "knowledge_structures": self.knowledge_structure,
+            "knowledge_structure": self.knowledge_structure,
             "action_space": self.action_space,
         }
 
