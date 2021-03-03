@@ -6,6 +6,17 @@ from typing import overload
 import numpy as np
 
 
+def sample(sample_type="const", a=None, b=None, *, random_state: np.random.RandomState = None):
+    if sample_type == "const":
+        return a
+    elif sample_type == "randint":
+        return random_state.randint(a, b)
+    elif sample_type == "random":
+        return random_state.random() * (b - a) + a
+    else:
+        raise TypeError("unknown sample type: %s" % sample_type)
+
+
 def as_array(obj, skip_type=(int, float)):
     if isinstance(obj, skip_type):
         return obj
@@ -113,6 +124,7 @@ def half_life_regression(elapsed_time, feature_coefficients, features):
     feature_coefficients = as_array(feature_coefficients)
     features = as_array(features).T
     s = np.exp(feature_coefficients @ features)
+    # np.exp(np.einsum('j,ij->i', feature_coefficients, features))
     d = as_array(elapsed_time)
 
     return np.exp(- d / s)
