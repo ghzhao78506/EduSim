@@ -3,12 +3,10 @@
 ## Env Protocol
 
 - What are provided as environment parameters
-    - [x] action space
-    - [x] knowledge structure
-    - [ ] items
-    - [ ]
+    - action space
+    - knowledge structure
 
-- What is recommended, knowledge or item?
+- What is the action space, knowledge or item?
     - [x] knowledge
     - [ ] item
 
@@ -44,10 +42,15 @@ There are two different mode for
 
 ### Reward
 
+- Step reward: $R(t) = \sum_{k=1}^{K}[\alpha_k(t+1)-\alpha_k(t)]$
+- Episode reward: $G=\sum_{t=0}^{T-1}R(t)$
+
+_Find these two equations in [1] (Eq.(1) and Eq.(2))_
+
 
 ## Agent Protocol
-- What is recommended, skill or item?
-    - [x] skill
+- What is recommended (i.e., what is the action space), knowledge or item?
+    - [x] knowledge
     - [ ] item
 
 
