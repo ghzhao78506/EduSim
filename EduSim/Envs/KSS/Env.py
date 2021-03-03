@@ -1,174 +1,168 @@
 # coding: utf-8
-# 2019/11/26 @ tongshiwei
-
-import random
+# 2020/4/30 @ tongshiwei
+from copy import deepcopy
 import networkx as nx
-from tqdm import tqdm
-import json
-from longling import wf_open
+import random
+from EduSim.Envs.meta import Env
 
-from EduSim.Envs.Env import Env
-from EduSim.Envs.Reward import get_reward
+import numpy as np
+from EduSim.Envs.KSS.meta.Learner import LearnerGroup, Learner
+from EduSim.Envs.shared.KSS_KES import episode_reward
+from EduSim.spaces import ListSpace
+from .meta import KSSItemBase, KSSScorer
+from .utils import load_environment_parameters
 
-from .KS import get_knowledge_structure
-from .Learner import Learner
-from .QBank import QBank
-from .Tester import Tester
-
-ORDER_RATIO = 1
+__all__ = ["KSSEnv"]
 
 
-class KSS(Env):
-    def __init__(self, learner_num=4000, seed=10, logger=None, log_rf=None, **kwargs):
-        super(KSS, self).__init__(logger=logger, log_rf=log_rf, **kwargs)
+class KSSEnv(Env):
+    def __init__(self, seed=None, initial_step=20):
+        self.random_state = np.random.RandomState(seed)
 
-        random.seed(seed)
+        parameters = load_environment_parameters()
+        self.knowledge_structure = parameters["knowledge_structure"]
+        self._item_base = KSSItemBase(
+            parameters["knowledge_structure"],
+            parameters["learning_order"],
+            items=parameters["items"]
+        )
+        self.learning_item_base = deepcopy(self._item_base)
+        self.learning_item_base.drop_attribute()
+        self.test_item_base = self._item_base
+        self.scorer = KSSScorer(parameters["configuration"].get("binary_scorer", True))
 
-        # initialize knowledge structure
-        self.ks = get_knowledge_structure()
+        self.action_space = ListSpace(self.learning_item_base.item_id_list, seed=seed)
 
-        # initialize exercise attributes
-        self.topo_order = list(nx.topological_sort(self.ks))
-        self.default_order = [5, 0, 1, 2, 3, 4, 6, 7, 8, 9]
-        self.q_bank = QBank(self.ks.number_of_nodes(), self.default_order)
-        self.review_times = 1
+        self.learners = LearnerGroup(self.knowledge_structure, seed=seed)
 
-        # initialize tester
-        self.tester = Tester(self.q_bank)
+        self._order_ratio = parameters["configuration"]["order_ratio"]
+        self._review_times = parameters["configuration"]["review_times"]
+        self._learning_order = parameters["learning_order"]
 
-        # initialize learners
-        self.learners = self.generate_learners(learner_num)
+        self._topo_order = list(nx.topological_sort(self.knowledge_structure))
+        self._initial_step = parameters["configuration"]["initial_step"] if initial_step is None else initial_step
 
-        # controller variables
-        random.seed(None)
-        self.reward = get_reward()
+        self._learner = None
+        self._initial_score = None
+        self._exam_reduce = "sum" if parameters["configuration"].get("exam_sum", True) else "ave"
 
-    def remove_invalid_sample(self, idx):
-        del self.learners[idx]
-
-    def begin_episode(self) -> Learner:
-        while True:
-            try:
-                _idx = random.randint(0, len(self.learners) - 1)
-            except ValueError:
-                raise ValueError
-
-            self._learner = self.learners[_idx]
-            self.tester.begin_episode(self._learner)
-            if self.is_valid_sample(self._learner):
-                self._path = []
-                return self._learner
-            else:  # pragma: no cover
-                self.tester.end_episode()
-                self.remove_invalid_sample(_idx)
-
-    def summary_episode(self, *args, **kwargs) -> dict:
-        _learner = self._learner
-        _path = self._path
-
-        tester_summary = self.tester.end_episode(self._path)
-
-        summary = {
-            "learner_id": _learner.id,
-            "path": _path,
-            "reward": self.episode_reward(
-                tester_summary["initial_score"],
-                tester_summary["final_score"],
-                tester_summary["full_score"],
-            ),
-            "evaluation": tester_summary["evaluation"]
+    @property
+    def parameters(self) -> dict:
+        return {
+            "knowledge_structure": self.knowledge_structure,
+            "action_space": self.action_space,
+            "learning_item_base": self.learning_item_base
         }
 
-        return summary
+    def _initial_logs(self, learner: Learner):
+        logs = []
 
-    def test(self, exercise):
-        result = {
-            "exercise": exercise,
-            "correct": self.tester.test(exercise)
-        }
-        self._learner.exercise_history.append([result["exercise"], result["correct"]])
-        return result
-
-    ###########################################################
-    #                   individual functions                  #
-    ###########################################################
-
-    # #################### learners ###########################
-    def generate_learners(self, learner_num, step=20):
-        initial_learner_abilities = self._get_learner_ability(learner_num)
-        learners = []
-
-        for learner_ability in tqdm(initial_learner_abilities, "loading data"):
-            learner = Learner(
-                initial_state=learner_ability,
-                knowledge_structure=self.ks,
-                learning_target=set(random.sample(self.ks.nodes, random.randint(3, len(self.ks.nodes)))),
-            )
-            self._learner_warm_up(learner, step)
-            learners.append(learner)
-
-        return learners
-
-    @staticmethod
-    def _get_learner_ability(learner_num):
-        return [[random.randint(-3, 0) - (0.1 * i) for i in range(10)] for _ in range(learner_num)]
-
-    # #################### capacity growth #########################
-    def _learner_warm_up(self, learner: Learner, step):  # pragma: no cover
-        self.tester.begin_episode(learner)
-        self._learner = learner
-        if random.random() < ORDER_RATIO:
-            while len(learner.exercise_history) < step:
-                if learner.exercise_history and learner.exercise_history[-1][1] == 1 and len(
-                        set([e[0] for e in learner.exercise_history[-3:]])) > 1:
-                    for _ in range(self.review_times):
-                        if len(learner.exercise_history) < step - self.review_times:
-                            learning_item = exercise = learner.exercise_history[-1][0]
-                            learner.learn(learning_item)
-                            self.test(exercise)
+        if random.random() < self._order_ratio:
+            while len(logs) < self._initial_step:
+                if logs and logs[-1][1] == 1 and len(
+                        set([e[0] for e in logs[-3:]])) > 1:
+                    for _ in range(self._review_times):
+                        if len(logs) < self._initial_step - self._review_times:
+                            learning_item_id = logs[-1][0]
+                            test_item_id, score = self.learn_and_test(learner, learning_item_id)
+                            logs.append([test_item_id, score])
                         else:
                             break
-                    learning_item = learner.learning_history[-1]
-                elif learner.exercise_history and learner.exercise_history[-1][1] == 0 and random.random() < 0.7:
-                    learning_item = learner.exercise_history[-1][0]
+                    learning_item_id = logs[-1][0]
+                elif logs and logs[-1][1] == 0 and random.random() < 0.7:
+                    learning_item_id = logs[-1][0]
                 elif random.random() < 0.9:
-                    for learning_item in self.topo_order:
-                        if self.tester.test(learning_item, binary=False) < 0.6:
+                    for knowledge in self._topo_order:
+                        test_item_id = self.test_item_base.knowledge2item[knowledge].id
+                        if learner.response(self.test_item_base[test_item_id]) < 0.6:
                             break
-                    else:
+                    else:  # pragma: no cover
                         break
+                    learning_item_id = test_item_id
                 else:
-                    learning_item = random.randint(0, len(self.topo_order) - 1)
+                    learning_item_id = self.random_state.choice(list(self.learning_item_base.index))
 
-                learner.learn(learning_item)
-                self.test(learning_item)
+                test_item_id, score = self.learn_and_test(learner, learning_item_id)
+                logs.append([test_item_id, score])
         else:
-            while len(learner.learning_history) < step:
+            while len(logs) < self._initial_step:
                 if random.random() < 0.9:
-                    for learning_item in self.default_order:
-                        if self.tester.test(learning_item, binary=False) < 0.6:
+                    for knowledge in self._learning_order:
+                        test_item_id = self.test_item_base.knowledge2item[knowledge].id
+                        if learner.response(self.test_item_base[test_item_id]) < 0.6:
                             break
                     else:
                         break
+                    learning_item_id = test_item_id
                 else:
-                    learning_item = random.randint(0, len(self.topo_order) - 1)
-                learner.learn(learning_item)
-                self.test(learning_item)
-        self.tester.end_episode()
+                    learning_item_id = self.random_state.choice(self.learning_item_base.index)
+
+                item_id, score = self.learn_and_test(learner, learning_item_id)
+                logs.append([item_id, score])
+
+        learner.update_logs(logs)
+
+    def learn_and_test(self, learner: Learner, item_id):
+        learning_item = self.learning_item_base[item_id]
+        learner.learn(learning_item)
+        test_item_id = item_id
+        test_item = self.test_item_base[test_item_id]
+        score = self.scorer(learner.response(test_item), test_item.attribute)
+        return item_id, score
+
+    def _exam(self, learner: Learner, detailed=False, reduce=None) -> (dict, int, float):
+        if reduce is None:
+            reduce = self._exam_reduce
+        knowledge_response = {}
+        for test_knowledge in learner.target:
+            item = self.test_item_base.knowledge2item[test_knowledge]
+            knowledge_response[test_knowledge] = [item.id, self.scorer(learner.response(item), item.attribute)]
+        if detailed:
+            return knowledge_response
+        elif reduce == "sum":
+            return np.sum([v for _, v in knowledge_response.values()])
+        elif reduce in {"mean", "ave"}:
+            return np.average([v for _, v in knowledge_response.values()])
+        else:
+            raise TypeError("unknown reduce type %s" % reduce)
+
+    def begin_episode(self, *args, **kwargs):
+        self._learner = next(self.learners)
+        self._initial_logs(self._learner)
+        self._initial_score = self._exam(self._learner)
+        return self._learner.profile, self._exam(self._learner, detailed=True)
+
+    def end_episode(self, *args, **kwargs):
+        observation = self._exam(self._learner, detailed=True)
+        initial_score, self._initial_score = self._initial_score, None
+        final_score = self._exam(self._learner)
+        reward = episode_reward(initial_score, final_score, len(self._learner.target))
+        done = final_score == len(self._learner.target)
+        info = {"initial_score": initial_score, "final_score": final_score}
         self._learner = None
-        assert len(learner.exercise_history) <= step, len(learner.exercise_history)
 
-    # ###################### off-line data ############################
-    def dump_id2idx(self, filename):
-        self.ks.dump_id2idx(filename)
+        return observation, reward, done, info
 
-    def dump_graph_edges(self, filename):
-        self.ks.dump_graph_edges(filename)
+    def step(self, learning_item_id, *args, **kwargs):
+        a = self._exam(self._learner)
+        observation = self.learn_and_test(self._learner, learning_item_id)
+        b = self._exam(self._learner)
+        return observation, b - a, b == len(self._learner.target), None
 
-    def dump_kt(self, learner_num, filename, step=50):
-        learners = self.generate_learners(learner_num)
+    def n_step(self, learning_path, *args, **kwargs):
+        exercise_history = []
+        a = self._exam(self._learner)
+        for learning_item_id in learning_path:
+            item_id, score = self.learn_and_test(self._learner, learning_item_id)
+            exercise_history.append([item_id, score])
+        b = self._exam(self._learner)
+        return exercise_history, b - a, b == len(self._learner.target), None
 
-        with wf_open(filename) as wf:
-            for learner in tqdm(learners, "kss for kt"):
-                self._learner_warm_up(learner, step)
-                print(json.dumps(learner.exercise_history), file=wf)
+    def reset(self):
+        self._learner = None
+
+    def render(self, mode='human'):
+        if mode == "log":
+            return "target: %s, state: %s" % (
+                self._learner.target, dict(self._exam(self._learner))
+            )

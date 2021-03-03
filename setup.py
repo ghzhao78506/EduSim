@@ -6,12 +6,12 @@ from setuptools import setup, find_packages
 test_deps = [
     'pytest>=4',
     'pytest-cov>=2.6.0',
-    'pytest-pep8>=1',
+    'pytest-flake',
 ]
 
 setup(
     name='EduSim',
-    version='0.0.2',
+    version='0.1.0',
     extras_require={
         'test': test_deps,
     },
@@ -23,9 +23,11 @@ setup(
                 'provide some offline simulators for training and testing recommender systems of education.',
     install_requires=[
         'gym',
-        'longling>=1.3.0',
+        'longling>=1.3.19',
         'tqdm',
         'networkx',
-        'numpy'
+        'numpy',
+        'tensorboardX',
+        'tensorboard',
     ]  # And any other dependencies foo needs
 )

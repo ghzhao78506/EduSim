@@ -18,51 +18,7 @@ pip install EduSim
 ```
 
 ## Quick Start
-```python
-import gym 
-from EduSim import Graph, RandomGraphAgent
-
-env = gym.make('KSS-v0', learner_num=4000)
-agent = RandomGraphAgent(Graph("KSS"))
-max_episode_num = 1000
-n_step = False
-max_steps = 20
-train = True
-
-episode = 0
-
-while True:
-    if max_episode_num is not None and episode > max_episode_num:
-        break
-
-    try:
-        agent.begin_episode(env.begin_episode())
-        episode += 1
-    except ValueError:  # pragma: no cover
-        break
-
-    # recommend and learn
-    if n_step is True:
-        # generate a learning path
-        learning_path = agent.n_step(max_steps)
-        env.n_step(learning_path)
-    else:
-        # generate a learning path step by step
-        for _ in range(max_steps):
-            try:
-                learning_item = agent.step()
-            except ValueError:  # pragma: no cover
-                break
-            interaction = env.step(learning_item)
-            agent.observe(**interaction["performance"])
-
-    # test the learner to see the learning effectiveness
-    agent.episode_reward(env.end_episode()["reward"])
-    agent.end_episode()
-
-    if train is True:
-        agent.tune()
-```
+See the examples in examples directory
 
 ## List of Environment
 
@@ -75,9 +31,23 @@ We currently provide the following environments:
 
 Name | Kind | Notation
 -|-|-
-[KSS-v0](docs/Env.md) | PBS | Knowledge Structure based Simulator (KSS), which is used in [1]
+[TMS-v0](docs/Env.md) | PBS | Transition Matrix based Simulator (TMS), which is used in [2,3,4]
+[MBS-v0](docs/Env.md) | PBS | Memory Based Simulator (MBS), which is used in [5]
+[KSS-v1](docs/Env.md) | PBS | Knowledge Structure based Simulator (KSS), which is used in [1]
 
 To construct your own environment, refer to [Env.md](docs/Env.md)
+
+**Declaration: if you are using ``TMS`` and ``MBS``, referring to the citations is suggested. **
+
+## utils
+
+### Visualization
+
+By default, we use ``tensorboard`` to help visualize the reward of each episode, see demos in ``scripts`` and use
+```sh
+tensorboard --logdir /path/to/logs
+```
+to see the visualization result.
 
 ## Reference
 [1] Qi Liu, Shiwei Tong, Chuanren Liu, Hongke Zhao, Enhong Chen, HaipingMa,&ShijinWang.2019.ExploitingCognitiveStructureforAdaptive Learning.InThe 25th ACM SIGKDD Conference on Knowledge Discovery & Data Mining (KDD’19)

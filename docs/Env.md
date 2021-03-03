@@ -51,7 +51,7 @@ class Learner(BaseLearner):
 ```
 And you can implement a new `Learner` class inheriting KSS/Learner and override the `learn` function:
 ```python
-from EduSim.Envs.KSS.Learner import Learner
+from EduSim.Envs.KSS.meta.Learner import Learner
 class NewLearner(Learner):
     def learn(self, learning_item: int):
         ...
