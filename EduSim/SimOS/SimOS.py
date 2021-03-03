@@ -214,8 +214,8 @@ def train_eval(agent: MetaAgent, env: Env, max_steps: int = None, max_episode_nu
     board_dir: the directory to hold tensorboard result
         use ``tensorboard --logdir $board_dir`` to see the result
     sw: Summary Writer
-    episode_callback: function
-    summary_callback: function
+    episode_callback:
+    summary_callback:
 
     Returns
     -------
