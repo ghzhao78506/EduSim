@@ -196,7 +196,9 @@ def meta_train_eval(agent: MetaAgent, env: Env, max_steps: int = None, max_episo
 
 def train_eval(agent: MetaAgent, env: Env, max_steps: int = None, max_episode_num: int = None, n_step=False,
                train=False,
-               logger=logging, level="episode", board_dir=None, *args, **kwargs):
+               logger=logging, level="episode", board_dir=None,
+               sw=None, episode_callback=None, summary_callback=None,
+               *args, **kwargs):
     """
 
     Parameters
@@ -211,6 +213,9 @@ def train_eval(agent: MetaAgent, env: Env, max_steps: int = None, max_episode_nu
     level
     board_dir: the directory to hold tensorboard result
         use ``tensorboard --logdir $board_dir`` to see the result
+    sw: Summary Writer
+    episode_callback: function
+    summary_callback: function
 
     Returns
     -------
@@ -219,14 +224,18 @@ def train_eval(agent: MetaAgent, env: Env, max_steps: int = None, max_episode_nu
 
     assert max_episode_num is not None, "infinity environment, max_episode_num should be set"
 
-    sw, episode_callback = get_board_episode_callback(board_dir)
+    if episode_callback is None:
+        sw, episode_callback = get_board_episode_callback(board_dir, sw=sw)
+
+    if summary_callback is None:
+        summary_callback = reward_summary_callback
 
     meta_train_eval(
         agent, env,
         max_steps, max_episode_num, n_step, train,
         logger, level,
         episode_callback=episode_callback,
-        summary_callback=reward_summary_callback,
+        summary_callback=summary_callback,
         *args, **kwargs
     )
 
