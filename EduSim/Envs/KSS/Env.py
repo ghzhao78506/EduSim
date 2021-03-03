@@ -1,6 +1,6 @@
 # coding: utf-8
 # 2020/4/30 @ tongshiwei
-
+from copy import deepcopy
 import networkx as nx
 import random
 from EduSim.Envs.meta import Env
@@ -26,7 +26,8 @@ class KSSEnv(Env):
             parameters["learning_order"],
             items=parameters["items"]
         )
-        self.learning_item_base = self._item_base
+        self.learning_item_base = deepcopy(self._item_base)
+        self.learning_item_base.drop_attribute()
         self.test_item_base = self._item_base
         self.scorer = KSSScorer(parameters["configuration"].get("binary_scorer", True))
 

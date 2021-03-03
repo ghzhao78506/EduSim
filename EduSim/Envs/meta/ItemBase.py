@@ -93,3 +93,12 @@ class ItemBase(object):
     @property
     def item_id_list(self):
         return list(self.index.keys())
+
+    def drop_attribute(self, attr=None):
+        for item in self.items:
+            if attr is None:
+                item.attribute = {}
+            else:
+                for _attr in attr:
+                    del item.attribute[attr]
+        return self
