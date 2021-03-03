@@ -2,10 +2,10 @@
 # 2021/2/7 @ tongshiwei
 
 from EduSim.utils import irt
-from EduSim.Envs.meta import HiddenScorer
+from EduSim.Envs.meta import TraitScorer
 
 
-class KSSScorer(HiddenScorer):
+class KSSScorer(TraitScorer):
     def __init__(self, binary_scorer=True):
         super(KSSScorer, self).__init__()
         self._binary = binary_scorer
