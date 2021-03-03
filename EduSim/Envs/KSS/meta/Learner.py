@@ -75,9 +75,6 @@ class Learner(MetaLearner):
             "target": self.target
         }
 
-    def set_profile(self, profile):
-        self._profile = profile
-
     def learn(self, learning_item: Item):
         self.learning_model.step(self._state, learning_item.knowledge)
 
