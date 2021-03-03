@@ -22,9 +22,9 @@ There are two different mode for
 - Which type is the learner, infinity or finite?
     - [x] infinity
     - [ ] finite
-- Which mode is the response of the learner, real or hidden?
+- Which mode is the response of the learner, real or trait?
     - [ ] real
-    - [x] hidden 
+    - [x] trait
 
 ### Item
 - What are the types of items in this environments?
