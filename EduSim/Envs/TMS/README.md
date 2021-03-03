@@ -60,6 +60,10 @@ _Find these two equations in [1] (Eq.(1) and Eq.(2))_
 * tree: Study II in Tang et al. [1]
 
 
+## Original Code
+
+Tang et al. [1] did not provide source code.
+
 ## Reference
 
 [1] Tang X, Chen Y, Li X, et al. A reinforcement learning approach to personalized learning recommendation systems[J]. British Journal of Mathematical and Statistical Psychology, 2019, 72(1): 108-135.
