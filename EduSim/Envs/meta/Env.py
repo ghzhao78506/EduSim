@@ -1,6 +1,7 @@
 # coding: utf-8
 # 2020/4/29 @ tongshiwei
 
+from pprint import pformat
 import gym
 
 
@@ -8,7 +9,7 @@ class Env(gym.Env):
     metadata = {'render.modes': ['human', 'log']}
 
     def __repr__(self):
-        return str(self.parameters)
+        return pformat(self.parameters)
 
     @property
     def parameters(self) -> dict:
