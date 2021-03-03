@@ -11,10 +11,10 @@ __all__ = ["Item", "ItemBase"]
 class Item(object):
     def __init__(self, knowledge=None, content: dict = None, attribute: dict = None, item_id=None):
         """attribute includes difficulty, trait and so on"""
-        self.id = self.__id(item_id)
-        self.knowledge = knowledge
-        self._content = content
-        self.attribute = attribute
+        self.id: (str, int, ...) = self.__id(item_id)
+        self.knowledge: (str, int, list, ...) = knowledge
+        self._content: (str, dict, ...) = content
+        self.attribute: dict = attribute
 
     @classmethod
     def __id(cls, _id=None):
