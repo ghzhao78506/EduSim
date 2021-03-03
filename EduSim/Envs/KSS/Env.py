@@ -14,19 +14,9 @@ from .utils import load_environment_parameters
 
 __all__ = ["KSSEnv"]
 
-RANDOM = 0
-LOOP = 1
-INF = 2
-
-MODE = {
-    "random": RANDOM,
-    "loop": LOOP,
-    "inf": INF,
-}
-
 
 class KSSEnv(Env):
-    def __init__(self, learner_num=4000, seed=None, initial_step=20):
+    def __init__(self, seed=None, initial_step=20):
         self.random_state = np.random.RandomState(seed)
 
         parameters = load_environment_parameters()
@@ -42,7 +32,6 @@ class KSSEnv(Env):
 
         self.action_space = ListSpace(self.learning_item_base.item_id_list, seed=seed)
 
-        self._learner_num = learner_num
         self.learners = LearnerGroup(self.knowledge_structure, seed=seed)
 
         self._order_ratio = parameters["configuration"]["order_ratio"]
@@ -50,7 +39,7 @@ class KSSEnv(Env):
         self._learning_order = parameters["learning_order"]
 
         self._topo_order = list(nx.topological_sort(self.knowledge_structure))
-        self._initial_step = initial_step
+        self._initial_step = parameters["configuration"]["initial_step"] if initial_step is None else initial_step
 
         self._learner = None
         self._initial_score = None
@@ -61,6 +50,7 @@ class KSSEnv(Env):
         return {
             "knowledge_structure": self.knowledge_structure,
             "action_space": self.action_space,
+            "learning_item_base": self.learning_item_base
         }
 
     def _initial_logs(self, learner: Learner):
