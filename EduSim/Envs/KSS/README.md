@@ -47,6 +47,10 @@ _Eq.(1) in [1]_
     - [ ] knowledge
     - [x] item
 
+## Original Code
+
+This is the original implementation in [1]
+
 
 ## Reference
 
