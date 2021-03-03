@@ -20,9 +20,9 @@ class RealChoiceScorer(RealScorer):
         return user_response == item_truth
 
 
-class HiddenScorer(Scorer):
+class TraitScorer(Scorer):
     def __init__(self):
-        super(HiddenScorer, self).__init__()
+        super(TraitScorer, self).__init__()
 
     def response_function(self, user_trait, item_trait, *args, **kwargs):
         raise NotImplementedError
