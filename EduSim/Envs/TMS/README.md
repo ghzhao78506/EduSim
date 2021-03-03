@@ -7,8 +7,8 @@
     - knowledge structure
 
 - What is the action space, knowledge or item?
-    - [x] knowledge
-    - [ ] item
+    - [ ] knowledge
+    - [x] item
 
 ### Additional
 
@@ -29,16 +29,32 @@ There are two different mode for
 ### Item
 - What are the types of items in this environments?
     - [x] learning item
-    - [x] testing item
+    - [x] test item
+
+- Is the learning item base same with the test item base?
+    - [ ] Yes
+    - [x] No 
 
 - What are included in an item?
     - [ ] content
-    - [x] knowledge (or skill)
+    - [x] knowledge
         - [x] single
         - [ ] multiple
     - [x] attribute
         - guessing
         - slipping
+        
+- What is the relation between item and knowledge in learning item?
+    - [x] one-to-one
+    - [ ] one-to-many
+    - [ ] many-to-one
+    - [ ] many-to-many
+    
+- What is the relation between item and knowledge in test item?
+    - [ ] one-to-one
+    - [ ] one-to-many
+    - [x] many-to-one
+    - [ ] many-to-many
 
 ### Reward
 
@@ -50,8 +66,8 @@ _Find these two equations in [1] (Eq.(1) and Eq.(2))_
 
 ## Agent Protocol
 - What is recommended (i.e., what is the action space), knowledge or item?
-    - [x] knowledge
-    - [ ] item
+    - [ ] knowledge
+    - [x] item
 
 
 ## Systems
