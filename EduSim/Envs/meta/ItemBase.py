@@ -81,11 +81,11 @@ class ItemBase(object):
             for item in self.items
         }
 
-    def __getitem__(self, item):
-        return self.index[item]
+    def __getitem__(self, item_id):
+        return self.index[item_id]
 
-    def __contains__(self, item):
-        return item in self.index
+    def __contains__(self, item_id):
+        return item_id in self.index
 
     def __iter__(self):
         return iter(self.items)

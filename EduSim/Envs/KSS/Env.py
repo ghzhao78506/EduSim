@@ -38,9 +38,9 @@ class KSSEnv(Env):
         )
         self.learning_item_base = self._item_base
         self.test_item_base = self._item_base
-        self.scorer = KSSScorer()
+        self.scorer = KSSScorer(parameters["configuration"].get("binary_scorer", True))
 
-        self.action_space = ListSpace(self.learning_item_base.items, seed=seed)
+        self.action_space = ListSpace(self.learning_item_base.item_id_list, seed=seed)
 
         self._learner_num = learner_num
         self.learners = LearnerGroup(self.knowledge_structure, seed=seed)
@@ -54,6 +54,7 @@ class KSSEnv(Env):
 
         self._learner = None
         self._initial_score = None
+        self._exam_reduce = "sum" if parameters["configuration"].get("exam_sum", True) else "ave"
 
     @property
     def parameters(self) -> dict:
@@ -80,8 +81,9 @@ class KSSEnv(Env):
                 elif logs and logs[-1][1] == 0 and random.random() < 0.7:
                     learning_item_id = logs[-1][0]
                 elif random.random() < 0.9:
-                    for test_item_id in self._topo_order:
-                        if learner.response(self.test_item_base[str(test_item_id)]) < 0.6:
+                    for knowledge in self._topo_order:
+                        test_item_id = self.test_item_base.knowledge2item[knowledge].id
+                        if learner.response(self.test_item_base[test_item_id]) < 0.6:
                             break
                     else:  # pragma: no cover
                         break
@@ -94,8 +96,9 @@ class KSSEnv(Env):
         else:
             while len(logs) < self._initial_step:
                 if random.random() < 0.9:
-                    for test_item_id in self._learning_order:
-                        if learner.state[self.test_item_base[test_item_id].knowledge] < 0.6:
+                    for knowledge in self._learning_order:
+                        test_item_id = self.test_item_base.knowledge2item[knowledge].id
+                        if learner.response(self.test_item_base[test_item_id]) < 0.6:
                             break
                     else:
                         break
@@ -113,24 +116,22 @@ class KSSEnv(Env):
         learner.learn(learning_item)
         test_item_id = item_id
         test_item = self.test_item_base[test_item_id]
-        score = self.scorer(learner.response(test_item), test_item.attributes)
+        score = self.scorer(learner.response(test_item), test_item.attribute)
         return item_id, score
 
-    def _exam(self, learner: Learner, detailed=False, reduce="sum") -> (dict, int, float):
+    def _exam(self, learner: Learner, detailed=False, reduce=None) -> (dict, int, float):
+        if reduce is None:
+            reduce = self._exam_reduce
         knowledge_response = {}
         for test_knowledge in learner.target:
-            knowledge_response[test_knowledge] = [
-                [item.id, self.scorer(learner.response(item), item.attribute)]
-                for item in self.test_item_base[test_knowledge]
-            ]
+            item = self.test_item_base.knowledge2item[test_knowledge]
+            knowledge_response[test_knowledge] = [item.id, self.scorer(learner.response(item), item.attribute)]
         if detailed:
             return knowledge_response
-        if reduce is None:
-            return {k: np.average(v) for k, v in knowledge_response.items()}
         elif reduce == "sum":
-            return np.sum([np.average(v) for v in knowledge_response.values()])
+            return np.sum([v for _, v in knowledge_response.values()])
         elif reduce in {"mean", "ave"}:
-            return np.average([np.average(v) for v in knowledge_response.values()])
+            return np.average([v for _, v in knowledge_response.values()])
         else:
             raise TypeError("unknown reduce type %s" % reduce)
 
@@ -153,7 +154,6 @@ class KSSEnv(Env):
 
     def step(self, learning_item_id, *args, **kwargs):
         a = self._exam(self._learner)
-        self._learner.learn(learning_item_id)
         observation = self.learn_and_test(self._learner, learning_item_id)
         b = self._exam(self._learner)
         return observation, b - a, b == len(self._learner.target), None
