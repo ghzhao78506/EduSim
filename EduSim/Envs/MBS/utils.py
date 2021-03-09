@@ -215,13 +215,18 @@ def generalized_power_law(
     else:
         theta_cw = np.asarray(window_correct_coefficients)
         theta_nw = np.asarray(window_attempt_coefficients)
+
         cw = np.asarray(correct_times).T
         nw = np.asarray(attempts).T
+
+
         h = theta_cw @ cw + theta_nw @ nw
-        m = 1 / (1 + np.exp(a - d + h))
+
+        # 修改为Sigmoid
+        # 原式：m = 1 / (1 + np.exp(a - d + h))
+        m = 1 / (1 + np.exp(-(a - d + h)))
 
     f = np.exp(additional_student_ability - additional_item_difficulty)
-
     return m * (1 + r * t) ** (-f)
 
 

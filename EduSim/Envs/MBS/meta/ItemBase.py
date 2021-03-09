@@ -16,6 +16,7 @@ class MBSItemBase(ItemBase):
         attributes = attributes if attributes is not None else {}
 
         difficulties = None if "difficulty" not in attributes else self.sample_item_difficulties()
+
         difficulty_coefficients = None if "difficulty_coefficient" not in attributes \
             else self.sample_difficulty_coefficients()
 
@@ -25,7 +26,6 @@ class MBSItemBase(ItemBase):
                 items[i]["attribute"]["difficulty"] = difficulties[i]
             if difficulty_coefficients is not None:
                 items[i]["attribute"]["difficulty_coefficient"] = difficulty_coefficients[i]
-
         super(MBSItemBase, self).__init__(items)
 
     def sample_item_difficulties(self):

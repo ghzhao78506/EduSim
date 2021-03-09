@@ -28,6 +28,7 @@ class MetaEnv(Env):
         raise NotImplementedError
 
     def exam(self):
+
         observation = [
             [
                 test_item.id,
@@ -38,14 +39,14 @@ class MetaEnv(Env):
         probabilities = [
             obs[1] for obs in observation
         ]
-
         reward = self._reward(probabilities)
         return observation, probabilities, reward
 
     def step(self, learning_item_id: int, *args, **kwargs):
         timestamp = self.timestamp
-
+        
         self._learner.learn(self.learning_item_base[learning_item_id], timestamp)
+
         observation, probabilities, reward = self.exam()
 
         done = all([p > self._threshold for p in probabilities])
@@ -156,8 +157,9 @@ class GPLEnv(MetaEnv):
             seed=seed
         )
         self.learning_item_base = deepcopy(self._item_base)
-        self.learning_item_base.drop_attribute()
+        # self.learning_item_base.drop_attribute()
         self.test_item_base = self._item_base
+
         self.action_space = ListSpace(self.learning_item_base.item_id_list, seed=seed)
 
     @property
@@ -172,4 +174,5 @@ class GPLEnv(MetaEnv):
         return self._learner.profile, observation
 
     def test(self, item, timestamp):
+        # print(item.id)
         return self._learner.response(item, timestamp)
