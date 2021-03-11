@@ -28,7 +28,7 @@ class MBSLearnerGroup(MetaInfinityLearnerGroup):
         if sample_type == "const":
             return [-np.inf] * n_items
         elif sample_type == "normal":
-            return np.exp(self.random_state.normal(0, 1, n_items)).tolist()
+            return (-np.exp(self.random_state.normal(0, 1, n_items))).tolist()
         else:
             raise TypeError("unknown sample type: %s" % sample_type)
 

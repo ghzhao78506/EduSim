@@ -211,7 +211,7 @@ def generalized_power_law(
     t = as_array(elapsed_time)
 
     if window_correct_coefficients is None:
-        m = 1 / (1 + np.exp(a - d))
+        m = 1 / (1 + np.exp(-(a - d)))
     else:
         theta_cw = np.asarray(window_correct_coefficients)
         theta_nw = np.asarray(window_attempt_coefficients)
@@ -227,7 +227,20 @@ def generalized_power_law(
         m = 1 / (1 + np.exp(-(a - d + h)))
 
     f = np.exp(additional_student_ability - additional_item_difficulty)
-    return m * (1 + r * t) ** (-f)
+    
+    # if t < 0:
+    #     print("t<0")
+    #     exit()
+
+    # if np.isnan((m * (1 + r * t)) ** (-f)):
+    #     print((m * (1 + r * t)) ** (-f))
+    #     print("(m * (1 + r * t)):",(m * (1 + r * t)))
+    #     print("-f:",-f)
+    #     print("m:",m)
+    #     print("r:",r)
+    #     print("t:",t)
+    
+    return (m * (1 + r * t)) ** (-f)
 
 
 gpl = generalized_power_law

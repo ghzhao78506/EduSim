@@ -6,6 +6,7 @@ from EduSim.Envs.MBS.utils import gpl
 from EduSim.Envs.meta import MetaLearner, MetaLearningModel
 from .MBSLearner import MBSLearnerGroup
 import numpy as np
+from copy import deepcopy
 
 GPLState = namedtuple("GPLState", ["n_correct", "n_attempts", "latest_review_ts", "window_index"])
 
@@ -112,7 +113,7 @@ class GPLLearnerGroup(MBSLearnerGroup):
     def __next__(self):
         
         return GPLLearner(
-            latest_review_ts=self._init_latest_review_ts,
+            latest_review_ts=deepcopy(self._init_latest_review_ts),
             ability=self._ability,
             ability_coefficient=self._ability_coefficient,
             delay_coefficient=self._delay_coefficient,
