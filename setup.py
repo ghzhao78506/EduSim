@@ -6,7 +6,7 @@ from setuptools import setup, find_packages
 test_deps = [
     'pytest>=4',
     'pytest-cov>=2.6.0',
-    'pytest-flake',
+    'pytest-flake8',
 ]
 
 setup(
