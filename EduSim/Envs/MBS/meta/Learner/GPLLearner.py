@@ -19,9 +19,9 @@ class GPLLearningModel(MetaLearningModel):
     def step(self, state: GPLState, learning_item_id, correct, timestamp, *args, **kwargs):
         # 改动一:Tuple 元素不能直接修改
         # state.window_index += 1
-        state = state._replace(window_index = state.window_index+1)
-        state = state._replace(n_correct = np.vstack([state.n_correct,[0]*self.n_items]))
-        state = state._replace(n_attempts = np.vstack([state.n_attempts,[0]*self.n_items]))        
+        state = state._replace(window_index=state.window_index + 1)
+        state = state._replace(n_correct=np.vstack([state.n_correct, [0] * self.n_items]))
+        state = state._replace(n_attempts=np.vstack([state.n_attempts, [0] * self.n_items]))
 
         if correct:
             state.n_correct[-1][learning_item_id] += 1
@@ -33,16 +33,16 @@ class GPLLearner(MetaLearner):
     def __init__(self, latest_review_ts: list, ability: list, ability_coefficient: list,
                  delay_coefficient: float, window_correct_coefficients: list = None,
                  window_attempt_coefficients: list = None,
-                 window_size=40,n_items=0,n_windows=0):
+                 window_size=40, n_items=0, n_windows=0):
         super(GPLLearner, self).__init__()
 
         # 改动二
         self._state = GPLState(
-            np.zeros((window_size*n_windows,n_items)),
-            np.zeros((window_size*n_windows,n_items)),
+            np.zeros((window_size * n_windows, n_items)),
+            np.zeros((window_size * n_windows, n_items)),
             latest_review_ts,
             0
-        )      
+        )
 
         self._learning_model = GPLLearningModel(window_size, len(latest_review_ts))
         self._ability = ability
@@ -60,10 +60,10 @@ class GPLLearner(MetaLearner):
         cur_index = self._state.window_index
         for _ in range(self._n_windows):
             item_n_corrects.append(
-                sum(self._state.n_correct[cur_index:cur_index+self._window_size])
+                sum(self._state.n_correct[cur_index:cur_index + self._window_size])
             )
             item_n_attempts.append(
-                sum(self._state.n_attempts[cur_index:cur_index+self._window_size])
+                sum(self._state.n_attempts[cur_index:cur_index + self._window_size])
             )
             cur_index += self._window_size
 
@@ -78,18 +78,18 @@ class GPLLearner(MetaLearner):
             test_item.attribute["difficulty_coefficient"],
             timestamp - self._state.latest_review_ts[test_item.id],
             self._decay_rate,
-            item_n_corrects[:,test_item.id],
-            item_n_attempts[:,test_item.id],
+            item_n_corrects[:, test_item.id],
+            item_n_attempts[:, test_item.id],
 
             self._window_correct_coefficients,
             self._window_attempt_coefficients
         )
 
     def learn(self, learning_item, timestamp, *args, **kwargs):
-        #TODO
-        prob = self.response(test_item=learning_item,timestamp=timestamp)
+        # TODO
+        prob = self.response(test_item=learning_item, timestamp=timestamp)
         correct = True if np.random.random() < prob else False
-        self._learning_model.step(self._state,learning_item_id=learning_item.id,correct=correct,timestamp=timestamp)
+        self._learning_model.step(self._state, learning_item_id=learning_item.id, correct=correct, timestamp=timestamp)
 
     @property
     def state(self):
@@ -111,7 +111,6 @@ class GPLLearnerGroup(MBSLearnerGroup):
         self._window_size = n_steps // n_windows if n_steps is not None else 40
 
     def __next__(self):
-        
         return GPLLearner(
             latest_review_ts=deepcopy(self._init_latest_review_ts),
             ability=self._ability,
