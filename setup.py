@@ -28,7 +28,7 @@ setup(
         'networkx',
         'pandas',
         'scikit-learn',
-        'numpy',
+        'numpy>=1.16.5',
         'tensorboardX',
         'tensorboard',
     ]  # And any other dependencies foo needs
