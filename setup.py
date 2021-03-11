@@ -26,6 +26,7 @@ setup(
         'longling>=1.3.19',
         'tqdm',
         'networkx',
+        'pandas',
         'numpy',
         'tensorboardX',
         'tensorboard',
