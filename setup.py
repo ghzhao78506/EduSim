@@ -27,6 +27,7 @@ setup(
         'tqdm',
         'networkx',
         'pandas',
+        'scikit-learn',
         'numpy',
         'tensorboardX',
         'tensorboard',
