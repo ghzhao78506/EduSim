@@ -219,7 +219,6 @@ def generalized_power_law(
         cw = np.asarray(correct_times).T
         nw = np.asarray(attempts).T
 
-
         h = theta_cw @ cw + theta_nw @ nw
 
         # 修改为Sigmoid
@@ -227,7 +226,7 @@ def generalized_power_law(
         m = 1 / (1 + np.exp(-(a - d + h)))
 
     f = np.exp(additional_student_ability - additional_item_difficulty)
-    
+
     # if t < 0:
     #     print("t<0")
     #     exit()
@@ -239,7 +238,7 @@ def generalized_power_law(
     #     print("m:",m)
     #     print("r:",r)
     #     print("t:",t)
-    
+
     return (m * (1 + r * t)) ** (-f)
 
 
