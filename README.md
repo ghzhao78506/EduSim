@@ -8,7 +8,7 @@ that naturally supports sequential interaction with learners.
 Meanwhile, EduSim allows the creation of new environments that reflect particular aspects of learning elements, 
 such as learning behavior of learners, knowledge structure of concepts and so on.
 
-If you are using this package for your research, please cite our paper [1].
+If you are using this package for your research, please cite our paper [5].
 
 Refer to our [website](http://base.ustc.edu.cn/) and [github](https://github.com/bigdata-ustc) for our publications and more projects
 
