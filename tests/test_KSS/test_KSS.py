@@ -1,14 +1,11 @@
 # coding: utf-8
 # 2019/11/27 @ tongshiwei
 
-import random
 import pytest
-from EduSim.Envs.KSS import KSSEnv
-from longling import path_append
 
 
 def test_api(env):
-    assert set(env.parameters.keys()) == {"knowledge_structure", "action_space"}
+    assert set(env.parameters.keys()) == {"knowledge_structure", "action_space", "learning_item_base"}
 
 
 @pytest.mark.parametrize("n_step", [True, False])
