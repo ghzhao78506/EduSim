@@ -31,6 +31,6 @@ def test_env(name, mode, tmp_path):
         agent,
         env,
         max_steps=2,
-        max_episode_num=100,
+        max_episode_num=10,
         level="summary",
     )
