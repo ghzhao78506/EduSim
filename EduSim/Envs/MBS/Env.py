@@ -44,7 +44,7 @@ class MetaEnv(Env):
 
     def step(self, learning_item_id: int, *args, **kwargs):
         timestamp = self.timestamp
-        
+
         self._learner.learn(self.learning_item_base[learning_item_id], timestamp)
 
         observation, probabilities, reward = self.exam()
