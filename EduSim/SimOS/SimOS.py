@@ -27,8 +27,8 @@ class MetaAgent(object):
     def tune(self, *args, **kwargs):
         raise NotImplementedError
 
-    def n_step(self, max_steps: int):
-        return []
+    def n_step(self):
+        raise NotImplementedError
 
 
 class RandomAgent(MetaAgent):

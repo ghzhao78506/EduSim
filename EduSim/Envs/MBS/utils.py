@@ -204,12 +204,34 @@ def generalized_power_law(
         the probability of recalling an item
 
 
+    Examples
+    --------
+    >>> student_ability = [0.5,0.6]
+    >>> additional_student_ability = [0.1,0.1]
+    >>> additional_student_ability = np.asarray(additional_student_ability)
+    >>> item_difficulty = [0.5,0.6]
+    >>> additional_item_difficulty = [0.1,0.1]
+    >>> additional_item_difficulty = np.asarray(additional_item_difficulty)
+    >>> elapsed_time = [9,9]
+    >>> decay_rate = 1.0
+    >>> correct_times= [10,10]
+    >>> attempts= [20,20]
+    >>> [x for x in generalized_power_law(student_ability, \
+                additional_student_ability, \
+                item_difficulty, \
+                additional_item_difficulty, \
+                elapsed_time, \
+                decay_rate, \
+                correct_times, \
+                attempts, \
+                None, \
+                None)]
+    [0.2, 0.2]
     """
     r = decay_rate
     a = as_array(student_ability)
     d = as_array(item_difficulty)
     t = as_array(elapsed_time)
-
     if window_correct_coefficients is None:
         m = 1 / (1 + np.exp(-(a - d)))
     else:
@@ -226,18 +248,6 @@ def generalized_power_law(
         m = 1 / (1 + np.exp(-(a - d + h)))
 
     f = np.exp(additional_student_ability - additional_item_difficulty)
-
-    # if t < 0:
-    #     print("t<0")
-    #     exit()
-
-    # if np.isnan((m * (1 + r * t)) ** (-f)):
-    #     print((m * (1 + r * t)) ** (-f))
-    #     print("(m * (1 + r * t)):",(m * (1 + r * t)))
-    #     print("-f:",-f)
-    #     print("m:",m)
-    #     print("r:",r)
-    #     print("t:",t)
 
     return (m * (1 + r * t)) ** (-f)
 

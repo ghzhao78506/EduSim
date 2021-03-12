@@ -56,8 +56,10 @@ class MetaEnv(Env):
         return observation, reward, done, info
 
     def n_step(self, learning_path, *args, **kwargs):
+        group = []
         for learning_item_id in learning_path:
-            self.step(learning_item_id)
+            group.append(self.step(learning_item_id))
+        return group
 
     def end_episode(self, *args, **kwargs):
         observation, probabilities, reward = self.exam()

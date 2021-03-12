@@ -49,6 +49,19 @@ class MetaLearnerGroup(object):
     pass
 
 
+"""
+Example:
+>>> learners = [MetaLearner(i) for i in range(10)]
+>>> mflg = MetaFiniteLearnerGroup(learners)
+>>> mflg.__len__()
+10
+>>> isinstance(mflg.__getitem__[0],MetaLearner)
+True
+>>> isinstance(mflg.sample(),MetaLearner)
+True
+"""
+
+
 class MetaFiniteLearnerGroup(MetaLearnerGroup):
     def __init__(self, learners: list, seed=None, *args, **kwargs):
         self._learners = learners
@@ -62,6 +75,12 @@ class MetaFiniteLearnerGroup(MetaLearnerGroup):
 
     def __len__(self):
         return len(self._learners)
+
+
+"""
+>>> MLG = MetaLearnerGroup()
+>>> MetaInfinityLearnerGroup(MLG)
+"""
 
 
 class MetaInfinityLearnerGroup(MetaLearnerGroup):
