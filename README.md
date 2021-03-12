@@ -8,7 +8,7 @@ that naturally supports sequential interaction with learners.
 Meanwhile, EduSim allows the creation of new environments that reflect particular aspects of learning elements, 
 such as learning behavior of learners, knowledge structure of concepts and so on.
 
-If you are using this package for your research, please cite our paper [1].
+If you are using this package for your research, please cite our paper [5].
 
 Refer to our [website](http://base.ustc.edu.cn/) and [github](https://github.com/bigdata-ustc) for our publications and more projects
 
@@ -31,13 +31,14 @@ We currently provide the following environments:
 
 Name | Kind | Notation
 -|-|-
-[TMS-v0](docs/Env.md) | PBS | Transition Matrix based Simulator (TMS), which is used in [2,3,4]
-[MBS-v0](docs/Env.md) | PBS | Memory Based Simulator (MBS), which is used in [5]
-[KSS-v1](docs/Env.md) | PBS | Knowledge Structure based Simulator (KSS), which is used in [1]
+[TMS-v1](docs/Env.md) | PBS | Transition Matrix based Simulator (TMS), which is used in [1,2,3]
+[MBS-v0](docs/Env.md) | PBS | Memory Based Simulator (MBS), which is used in [4]
+[KSS-v2](docs/Env.md) | PBS | Knowledge Structure based Simulator (KSS), which is used in [5]
 
 To construct your own environment, refer to [Env.md](docs/Env.md)
 
-**Declaration: if you are using ``TMS`` and ``MBS``, referring to the citations is suggested. **
+Declaration: if you are using ``TMS`` and ``MBS``, referring to the citations is suggested.
+
 
 ## utils
 
@@ -50,7 +51,15 @@ tensorboard --logdir /path/to/logs
 to see the visualization result.
 
 ## Reference
-[1] Qi Liu, Shiwei Tong, Chuanren Liu, Hongke Zhao, Enhong Chen, HaipingMa,&ShijinWang.2019.ExploitingCognitiveStructureforAdaptive Learning.InThe 25th ACM SIGKDD Conference on Knowledge Discovery & Data Mining (KDD’19)
+[1] Tang X, Chen Y, Li X, et al. A reinforcement learning approach to personalized learning recommendation systems[J]. British Journal of Mathematical and Statistical Psychology, 2019, 72(1): 108-135.
+
+[2] 
+
+[3] 
+
+[4] Reddy S, Levine S, Dragan A. Accelerating human learning with deep reinforcement learning[C]//NIPS workshop: teaching machines, robots, and humans. 2017.
+
+[5] Qi Liu, Shiwei Tong, Chuanren Liu, Hongke Zhao, Enhong Chen, HaipingMa,&ShijinWang.2019.Exploiting Cognitive Structure for Adaptive Learning.InThe 25th ACM SIGKDD Conference on Knowledge Discovery & Data Mining (KDD’19)
 ```bibtex
 @inproceedings{DBLP:conf/kdd/LiuTLZCMW19,
   author    = {Qi Liu and

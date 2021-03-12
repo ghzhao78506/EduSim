@@ -6,7 +6,7 @@ from setuptools import setup, find_packages
 test_deps = [
     'pytest>=4',
     'pytest-cov>=2.6.0',
-    'pytest-flake',
+    'pytest-flake8',
 ]
 
 setup(
@@ -26,7 +26,9 @@ setup(
         'longling>=1.3.19',
         'tqdm',
         'networkx',
-        'numpy',
+        'pandas',
+        'scikit-learn',
+        'numpy>=1.16.5',
         'tensorboardX',
         'tensorboard',
     ]  # And any other dependencies foo needs

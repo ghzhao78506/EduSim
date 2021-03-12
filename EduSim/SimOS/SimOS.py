@@ -117,7 +117,7 @@ def meta_train_eval(agent: MetaAgent, env: Env, max_steps: int = None, max_episo
             learner_profile = env.begin_episode()
             agent.begin_episode(learner_profile)
             episode += 1
-            
+
             if level <= as_level("episode"):
                 logger.info("episode [%s]: %s" % (episode, env.render("log")))
 
