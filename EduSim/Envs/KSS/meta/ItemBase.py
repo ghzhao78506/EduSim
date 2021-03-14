@@ -9,6 +9,10 @@ __all__ = ["KSSItemBase"]
 
 
 class KSSItemBase(ItemBase):
+    """
+    Example
+    -------
+    """
     def __init__(self, knowledge_structure: (Graph, DiGraph), learning_order=None, items=None, seed=None,
                  reset_attributes=True):
         self.random_state = np.random.RandomState(seed)

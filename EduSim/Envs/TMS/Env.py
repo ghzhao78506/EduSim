@@ -35,6 +35,13 @@ MODE = {
 
 
 class TMSEnv(Env):
+    """
+    Example
+    -------
+    >>> tms = TMSEnv(name="binary",parameters={"a":1})
+    >>> [i for i in tms.parameters.keys()]
+    ['knowledge_structure', 'action_space']
+    """
     def __init__(self, name, mode="with_measurement_error", seed=None, parameters: dict = None):
         """
 

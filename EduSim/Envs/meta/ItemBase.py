@@ -9,6 +9,27 @@ __all__ = ["Item", "ItemBase"]
 
 
 class Item(object):
+    """
+    Example
+    -------
+    >>> item=Item([1,1,1],{"a":1,"b":1},{"name":"example","source":"web"},1)
+    >>> content=item.content
+    >>> content['a']
+    1
+    >>> content['b']
+    1
+    >>> item.update_content({"a":2,"b":2})
+    {'a': 2, 'b': 2}
+    >>> content=item.content
+    >>> content['a']
+    2
+    >>> content['b']
+    2
+    >>> item.update_knowledge([2,2,2])
+    [2, 2, 2]
+    >>> item.knowledge
+    [2, 2, 2]
+    """
     def __init__(self, knowledge=None, content: dict = None, attribute: dict = None, item_id=None):
         """attribute includes difficulty, trait and so on"""
         self.id: (str, int, ...) = self.__id(item_id)

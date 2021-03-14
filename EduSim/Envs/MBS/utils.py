@@ -4,9 +4,21 @@
 import functools
 from typing import overload
 import numpy as np
+import pytest
 
 
 def sample(sample_type="const", a=None, b=None, *, random_state: np.random.RandomState = None):
+    """
+    Example
+    -------
+    >>> sample(sample_type="const",a=5,random_state=np.random.RandomState())
+    5
+    >>> isinstance(sample(sample_type="randint",a=1,b=10,random_state=np.random.RandomState()),int)
+    True
+    >>> isinstance(sample(sample_type="random",a=0,b=10,random_state=np.random.RandomState()),float)
+    True
+    >>> with pytest.raises(TypeError):sample(sample_type="random2423423")
+    """
     if sample_type == "const":
         return a
     elif sample_type == "randint":
@@ -18,6 +30,16 @@ def sample(sample_type="const", a=None, b=None, *, random_state: np.random.Rando
 
 
 def as_array(obj, skip_type=(int, float)):
+    """
+    Example
+    -------
+    >>> as_array(1)
+    1
+    >>> as_array(1.0)
+    1.0
+    >>> isinstance(as_array([1,2,3]),np.ndarray)
+    True
+    """
     if isinstance(obj, skip_type):
         return obj
 

@@ -6,6 +6,13 @@ from longling import json_load, path_append, abs_current_dir
 from EduSim.Envs.shared.KSS_KES import KS
 from EduSim.utils.io_lib import load_ks_from_csv
 
+"""
+Example
+-------
+>>> load_item("filepath_that_do_not_exsit/not_exsit77250")
+{}
+"""
+
 
 def load_items(filepath):
     if os.path.exists(filepath):
