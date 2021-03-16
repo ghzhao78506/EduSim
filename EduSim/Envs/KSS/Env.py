@@ -6,7 +6,6 @@ import random
 from EduSim.Envs.meta import Env
 
 import numpy as np
-import pytest
 from EduSim.Envs.KSS.meta.Learner import LearnerGroup, Learner
 from EduSim.Envs.shared.KSS_KES import episode_reward
 from EduSim.spaces import ListSpace
